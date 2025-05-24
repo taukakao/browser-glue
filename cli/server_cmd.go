@@ -29,7 +29,6 @@ func startServer(cmd *cobra.Command, args []string) {
 		}
 	}()
 
-	pterm.DefaultInteractiveMultiselect = *pterm.DefaultInteractiveMultiselect.WithFilter(false).WithKeyConfirm(keys.Enter).WithKeySelect(keys.Space)
 	customMultiselect := pterm.
 		DefaultInteractiveMultiselect.
 		WithFilter(false).
