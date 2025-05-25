@@ -18,17 +18,15 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Run the server",
 	Long:  `Run the server`,
-	Run:   startServer,
+	Run: func(cmd *cobra.Command, args []string) {
+		exitCode := startServer()
+		if exitCode != 0 {
+			os.Exit(1)
+		}
+	},
 }
 
-func startServer(cmd *cobra.Command, args []string) {
-	exitCode := 0
-	defer func() {
-		if exitCode != 0 {
-			os.Exit(exitCode)
-		}
-	}()
-
+func startServer() int {
 	customMultiselect := pterm.
 		DefaultInteractiveMultiselect.
 		WithFilter(false).
@@ -39,13 +37,11 @@ func startServer(cmd *cobra.Command, args []string) {
 	configFiles, err := config.CollectConfigFiles()
 	if err != nil {
 		logs.Error("could not find config files", err)
-		exitCode = 1
-		return
+		return 1
 	}
 	if len(configFiles) == 0 {
 		logs.Error("could not find any native messaging configs")
-		exitCode = 1
-		return
+		return 1
 	}
 
 	configFileNames := make([]string, 0, len(configFiles))
@@ -65,14 +61,12 @@ func startServer(cmd *cobra.Command, args []string) {
 
 	if err != nil {
 		logs.Error(err)
-		exitCode = 1
-		return
+		return 1
 	}
 
 	if len(selectedConfigs) == 0 {
 		pterm.Error.Println("No arguments given")
-		exitCode = 1
-		return
+		return 1
 	}
 
 	c := make(chan os.Signal, 1)
@@ -105,5 +99,5 @@ func startServer(cmd *cobra.Command, args []string) {
 	}()
 
 	server.StopServers()
-	return
+	return 0
 }
