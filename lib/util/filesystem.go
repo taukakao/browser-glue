@@ -10,9 +10,6 @@ import (
 	"github.com/taukakao/browser-glue/lib/logs"
 )
 
-var CustomDataDir string
-var ClientExecutablePath string
-
 func GenerateSocketPath(extensionName string) string {
 	socketNameEncoded := socketEncoding.EncodeToString([]byte(extensionName))
 	return fmt.Sprintf(socketPathFormat, socketNameEncoded)
@@ -20,7 +17,7 @@ func GenerateSocketPath(extensionName string) string {
 
 func FindHomeDirPath() string {
 	homeDir, err := os.UserHomeDir()
-	if err != nil {
+	if err != nil || homeDir == "" {
 		currentUser, err := user.Current()
 		if err != nil || currentUser.Username == "" {
 			// If this happens then something is very wrong with the system
@@ -32,7 +29,19 @@ func FindHomeDirPath() string {
 	return homeDir
 }
 
-func FindUserDataDirPath() string {
+func GetCustomUserDataDir() string {
+	return customUserDataDir
+}
+
+func GetCustomUserConfigDir() string {
+	return customUserConfigDir
+}
+
+func GetClientExecutablePath() string {
+	return clientExecutablePath
+}
+
+func findUserDataDirPath() string {
 	dataDir, ok := os.LookupEnv("XDG_DATA_HOME")
 	if !ok {
 		homeDir := FindHomeDirPath()
@@ -41,14 +50,17 @@ func FindUserDataDirPath() string {
 	return dataDir
 }
 
-var socketPathFormat string
-var socketEncoding = base64.NewEncoding("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-")
-
-func init() {
-	dataDir := FindUserDataDirPath()
-
-	CustomDataDir = filepath.Join(dataDir, "browser-glue")
-	socketPathFormat = filepath.Join(CustomDataDir, "%s.socket")
-
-	ClientExecutablePath = filepath.Join(CustomDataDir, "client")
+func findUserConfigDir() string {
+	configDir, ok := os.LookupEnv("XDG_CONFIG_HOME")
+	if !ok {
+		homeDir := FindHomeDirPath()
+		configDir = filepath.Join(homeDir, ".config")
+	}
+	return configDir
 }
+
+var customUserDataDir string = filepath.Join(findUserDataDirPath(), "browser-glue")
+var customUserConfigDir string = filepath.Join(findUserConfigDir(), "browser-glue")
+var clientExecutablePath string = filepath.Join(customUserDataDir, "client")
+var socketPathFormat string = filepath.Join(customUserDataDir, "%s.socket")
+var socketEncoding = base64.NewEncoding("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-")

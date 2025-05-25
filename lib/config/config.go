@@ -81,5 +81,5 @@ func (config NativeMessagingConfig) CreateCopy() *NativeMessagingConfig {
 }
 
 func (config *NativeMessagingConfig) ConvertToCustomConfig() {
-	config.Executable = util.ClientExecutablePath
+	config.Executable = util.GetClientExecutablePath()
 }
