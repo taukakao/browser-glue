@@ -21,6 +21,10 @@ func (config *NativeConfigFile) Name() string {
 	return filepath.Base(config.Path)
 }
 
+func (config *NativeConfigFile) GetBrowser() settings.Browser {
+	return config.browser
+}
+
 func (config *NativeConfigFile) IsEnabled() bool {
 	enabledConfigs := settings.EnabledNativeConfigFiles(config.browser)
 	enabled := slices.Contains(enabledConfigs, config.Name())
@@ -37,7 +41,7 @@ func (config *NativeConfigFile) IsEnabled() bool {
 }
 
 func (config *NativeConfigFile) Enable() error {
-	err := settings.SetNativeConfigFileEnabled(config.browser, config.Path, true)
+	err := settings.SetNativeConfigFileEnabled(config.browser, config.Name(), true)
 	if err != nil {
 		logs.Error("could not change setting of config file:", err)
 		return err
@@ -51,7 +55,7 @@ func (config *NativeConfigFile) Enable() error {
 }
 
 func (config *NativeConfigFile) Disable() error {
-	err := settings.SetNativeConfigFileEnabled(config.browser, config.Path, false)
+	err := settings.SetNativeConfigFileEnabled(config.browser, config.Name(), false)
 	if err != nil {
 		logs.Error("could not change setting of config file:", err)
 		return err
