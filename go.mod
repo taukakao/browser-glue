@@ -4,7 +4,7 @@ go 1.24.2
 
 require (
 	atomicgo.dev/keyboard v0.2.9
-	github.com/fsnotify/fsnotify v1.8.0
+	github.com/fsnotify/fsnotify v1.9.0
 	github.com/pterm/pterm v0.12.80
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
