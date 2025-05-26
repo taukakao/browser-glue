@@ -51,7 +51,7 @@ func (config *NativeMessagingConfig) WriteFile(path string) error {
 
 	pathNew := filepath.Join(filepath.Dir(path), filepath.Base(path)+".new")
 
-	data, err := json.Marshal(*config)
+	data, err := json.MarshalIndent(*config, "", "    ")
 	if err != nil {
 		logs.Error("Creating the new config file failed:", err)
 		return err
