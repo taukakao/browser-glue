@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"net"
 	"os"
 	"path/filepath"
@@ -8,16 +9,34 @@ import (
 
 	"github.com/taukakao/browser-glue/lib/config"
 	"github.com/taukakao/browser-glue/lib/logs"
+	"github.com/taukakao/browser-glue/lib/settings"
 	"github.com/taukakao/browser-glue/lib/util"
 )
+
+var ErrNoConfigFiles = errors.New("no config files found")
+
+func RunEnabledServersBackground(browser settings.Browser, exitChan chan error) error {
+	nativeConfigs, err := config.CollectEnabledConfigFiles(browser)
+	if err != nil {
+		logs.Error("can't collect config files", err)
+		return err
+	}
+	if len(nativeConfigs) == 0 {
+		return ErrNoConfigFiles
+	}
+	for _, nativeConfig := range nativeConfigs {
+		for _, extension := range nativeConfig.Content.AllowedExtensions {
+			RunServerBackground(nativeConfig, extension, exitChan)
+		}
+	}
+	return nil
+}
+
+// TODO: watch for changes in config
 
 func RunServerBackground(configFile config.NativeConfigFile, extensionName string, exitChan chan error) {
 	go func() { exitChan <- RunServer(configFile, extensionName) }()
 }
-
-var serverGroup sync.WaitGroup
-
-var stopServers = make(chan bool)
 
 func RunServer(configFile config.NativeConfigFile, extensionName string) error {
 	defer logs.Debug("server exited", extensionName)
@@ -93,3 +112,7 @@ func StopServers() {
 		}
 	}
 }
+
+var serverGroup sync.WaitGroup
+
+var stopServers = make(chan bool)

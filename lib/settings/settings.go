@@ -32,14 +32,14 @@ func EnabledNativeConfigFiles(browser Browser) []string {
 	return viper.GetStringSlice(string(browser) + ".enabledConfigs")
 }
 
-func SetNativeConfigFileEnabled(browser Browser, nativeConfigFilePath string, enable bool) {
+func SetNativeConfigFileEnabled(browser Browser, nativeConfigFilePath string, enable bool) error {
 	viperMutex.Lock()
 	defer viperMutex.Unlock()
 
 	allEnabled := viper.GetStringSlice(string(browser) + ".enabledConfigs")
 	isCurrentlyEnabled := slices.Contains(allEnabled, nativeConfigFilePath)
 	if isCurrentlyEnabled == enable {
-		return
+		return nil
 	}
 
 	if enable {
@@ -49,7 +49,7 @@ func SetNativeConfigFileEnabled(browser Browser, nativeConfigFilePath string, en
 	}
 
 	viper.Set(string(browser)+".enabledConfigs", allEnabled)
-	viper.WriteConfig()
+	return viper.WriteConfig()
 }
 
 var viperMutex sync.Mutex
