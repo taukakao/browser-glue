@@ -62,6 +62,7 @@ func findUserConfigDir() string {
 var shortAppId = "browser-glue"
 var customUserDataDir string = filepath.Join(findUserDataDirPath(), shortAppId)
 var customUserConfigDir string = filepath.Join(findUserConfigDir(), shortAppId)
-var clientExecutablePath string = filepath.Join(customUserDataDir, "client")
-var socketPathFormat string = filepath.Join(customUserDataDir, "%s.socket")
+var clientExecutableDir string = filepath.Join(customUserDataDir, "client")
+var clientExecutablePath string = filepath.Join(clientExecutableDir, "client")
+var socketPathFormat string = filepath.Join(clientExecutableDir, "%s.socket")
 var socketEncoding = base64.NewEncoding("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-")

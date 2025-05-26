@@ -24,14 +24,16 @@ func (config *NativeConfigFile) Name() string {
 func (config *NativeConfigFile) IsEnabled() bool {
 	enabledConfigs := settings.EnabledNativeConfigFiles(config.browser)
 	enabled := slices.Contains(enabledConfigs, config.Name())
+
 	if enabled && !config.flatpakFileExists() {
+		logs.Info("flatpak config file for", config.Path, "is missing, creating it")
 		err := config.writeConfigToFlatpakDir()
 		if err != nil {
 			logs.Error("could not write config", config.Path, "to flatpak directory:", err)
 		}
 	}
-	return enabled
 
+	return enabled
 }
 
 func (config *NativeConfigFile) Enable() error {
@@ -84,7 +86,9 @@ func (config *NativeConfigFile) writeConfigToFlatpakDir() error {
 		}
 	}
 
-	err := config.Content.WriteFile(flatpakPath)
+	flatpakConfig := config.Content.CreateCopy()
+	flatpakConfig.ConvertToCustomConfig()
+	err := flatpakConfig.WriteFile(flatpakPath)
 	if err != nil {
 		logs.Error("could not create native config in flatpak folder", err)
 		return err

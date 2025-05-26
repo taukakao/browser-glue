@@ -49,7 +49,7 @@ func (config *NativeMessagingConfig) ParseFile(path string) error {
 func (config *NativeMessagingConfig) WriteFile(path string) error {
 	var err error
 
-	pathNew := filepath.Join(path, ".new")
+	pathNew := filepath.Join(filepath.Dir(path), filepath.Base(path)+".new")
 
 	data, err := json.Marshal(*config)
 	if err != nil {
