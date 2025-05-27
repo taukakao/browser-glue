@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 
 	"github.com/taukakao/browser-glue/lib/config"
@@ -26,25 +27,63 @@ func RunEnabledServersBackground(browser settings.Browser, exitChan chan error) 
 	}
 	for _, nativeConfig := range nativeConfigs {
 		for _, extension := range nativeConfig.Content.AllowedExtensions {
-			RunServerBackground(nativeConfig, extension, exitChan)
+			serv := Server{ConfigFile: nativeConfig, ExtensionName: extension}
+			serv.RunBackground(exitChan)
 		}
 	}
+
+	changes := make(chan struct{})
+	settings.SubscribeToChanges(changes)
+
+	go func() {
+		for {
+			<-changes
+
+			err := reloadEnabledServers(browser, exitChan)
+			if err != nil {
+				logs.Error("failed reloading servers:", err)
+			}
+		}
+	}()
+
 	return nil
 }
 
-// TODO: watch for changes in config
+var ErrAlreadyRunning = errors.New("server already running")
 
-func RunServerBackground(configFile config.NativeConfigFile, extensionName string, exitChan chan error) {
-	go func() { exitChan <- RunServer(configFile, extensionName) }()
+type Server struct {
+	ConfigFile    config.NativeConfigFile
+	ExtensionName string
+
+	running bool
+	stop    chan struct{}
 }
 
-func RunServer(configFile config.NativeConfigFile, extensionName string) error {
-	defer logs.Debug("server exited", extensionName)
+func (serv *Server) RunBackground(exitChan chan error) {
+	go func() { exitChan <- serv.Run() }()
+}
 
-	serverGroup.Add(1)
-	defer serverGroup.Done()
+func (serv *Server) StopBackground() {
+	if !serv.running {
+		return
+	}
+	serv.stop <- struct{}{}
+}
 
-	socketPath := util.GenerateSocketPath(extensionName)
+func (serv *Server) Run() error {
+	if serv.running {
+		return ErrAlreadyRunning
+	}
+	serv.running = true
+
+	serv.stop = make(chan struct{}, 1)
+
+	runningServers.Add(serv)
+	defer runningServers.Remove(serv)
+
+	defer logs.Debug("server exited", serv.ExtensionName)
+
+	socketPath := util.GenerateSocketPath(serv.ExtensionName)
 
 	os.MkdirAll(filepath.Dir(socketPath), 0o775)
 	os.Remove(socketPath)
@@ -56,7 +95,7 @@ func RunServer(configFile config.NativeConfigFile, extensionName string) error {
 	}
 	defer listener.Close()
 
-	logs.Info("Server for", extensionName, "listening on", socketPath)
+	logs.Info("Server for", serv.ExtensionName, "listening on", socketPath)
 
 	retries := 5
 
@@ -70,7 +109,7 @@ func RunServer(configFile config.NativeConfigFile, extensionName string) error {
 		select {
 		case conn := <-connChan:
 			retries = 5
-			go handleConnection(configFile.Content.Executable, configFile.Path, extensionName, conn, stopConnectionSignal, &connectionWait)
+			go handleConnection(serv.ConfigFile.Content.Executable, serv.ConfigFile.Path, serv.ExtensionName, conn, stopConnectionSignal, &connectionWait)
 
 		case err := <-errChan:
 			if retries > 0 {
@@ -82,16 +121,16 @@ func RunServer(configFile config.NativeConfigFile, extensionName string) error {
 				return err
 			}
 
-		case <-stopServers:
-			logs.Info("closing server for", extensionName)
+		case <-serv.stop:
+			logs.Info("closing server for", serv.ExtensionName)
 			for {
 				select {
 				case stopConnectionSignal <- true:
 					continue
 				default:
-					logs.Debug("Waiting for all connections to exit", extensionName)
+					logs.Debug("Waiting for all connections to exit", serv.ExtensionName)
 					connectionWait.Wait()
-					logs.Debug("all connections exited", extensionName)
+					logs.Debug("all connections exited", serv.ExtensionName)
 					return nil
 				}
 			}
@@ -100,19 +139,96 @@ func RunServer(configFile config.NativeConfigFile, extensionName string) error {
 }
 
 func StopServers() {
-	for {
-		select {
-		case stopServers <- true:
-			continue
-		default:
-			logs.Debug("Waiting for all servers to exit")
-			serverGroup.Wait()
-			logs.Debug("all servers exited")
-			return
-		}
+	currentlyRunning := runningServers.Copy()
+	for _, server := range currentlyRunning {
+		server.StopBackground()
 	}
+	logs.Debug("Waiting for all servers to exit")
+	for runningServers.Len() > 0 {
+	}
+	logs.Debug("all servers exited")
 }
 
-var serverGroup sync.WaitGroup
+var runningServers threadSafeServerList
 
-var stopServers = make(chan bool)
+func reloadEnabledServers(browser settings.Browser, exitChan chan error) error {
+	currentlyRunning := runningServers.Copy()
+
+	nativeConfigs, err := config.CollectEnabledConfigFiles(browser)
+	if err != nil {
+		logs.Error("can't collect config files", err)
+		return err
+	}
+	if len(nativeConfigs) == 0 {
+		StopServers()
+		return nil
+	}
+
+	for _, runningServer := range currentlyRunning {
+		enabled := slices.ContainsFunc(nativeConfigs, func(conf config.NativeConfigFile) bool {
+			pathMatches := conf.Path == runningServer.ConfigFile.Path
+			extensionMatches := slices.Contains(conf.Content.AllowedExtensions, runningServer.ExtensionName)
+			return pathMatches && extensionMatches
+		})
+		if enabled {
+			continue
+		}
+
+		runningServer.StopBackground()
+	}
+
+	for _, nativeConfig := range nativeConfigs {
+		for _, extension := range nativeConfig.Content.AllowedExtensions {
+			running := slices.ContainsFunc(currentlyRunning, func(serv *Server) bool {
+				pathMatches := nativeConfig.Path == serv.ConfigFile.Path
+				extensionMatches := extension == serv.ExtensionName
+				return pathMatches && extensionMatches
+			})
+			if running {
+				continue
+			}
+
+			serv := Server{ConfigFile: nativeConfig, ExtensionName: extension}
+			serv.RunBackground(exitChan)
+		}
+	}
+	return nil
+}
+
+type threadSafeServerList struct {
+	servers []*Server
+	sync.Mutex
+}
+
+func (sl *threadSafeServerList) Add(s *Server) {
+	sl.Lock()
+	defer sl.Unlock()
+
+	sl.servers = append(sl.servers, s)
+}
+
+func (sl *threadSafeServerList) Remove(s *Server) bool {
+	sl.Lock()
+	defer sl.Unlock()
+
+	index := slices.Index(sl.servers, s)
+	if index < 0 {
+		return false
+	}
+
+	sl.servers = slices.Delete(sl.servers, index, index+1)
+	return true
+}
+
+func (sl *threadSafeServerList) Copy() []*Server {
+	sl.Lock()
+	defer sl.Unlock()
+
+	currentlyRunning := make([]*Server, len(sl.servers))
+	copy(currentlyRunning, sl.servers)
+	return currentlyRunning
+}
+
+func (sl *threadSafeServerList) Len() int {
+	return len(sl.servers)
+}
