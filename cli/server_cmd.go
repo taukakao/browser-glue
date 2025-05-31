@@ -4,12 +4,15 @@ import (
 	"errors"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
+	"github.com/taukakao/browser-glue/lib/logs"
 	"github.com/taukakao/browser-glue/lib/server"
 	"github.com/taukakao/browser-glue/lib/settings"
+	"github.com/taukakao/browser-glue/lib/util"
 )
 
 var serverCmd = &cobra.Command{
@@ -25,8 +28,16 @@ var serverCmd = &cobra.Command{
 }
 
 func startServer() int {
+	var err error
+
+	err = writeClientExecutable()
+	if err != nil {
+		pterm.Error.Println("Could not write client executable:", err)
+		return 1
+	}
+
 	exitChan := make(chan error)
-	err := server.RunEnabledServersBackground(settings.Firefox, exitChan)
+	err = server.RunEnabledServersBackground(settings.Firefox, exitChan)
 
 	if errors.Is(err, server.ErrNoConfigFiles) {
 		pterm.Error.Println("You have not enabled any configs yet.")
@@ -51,4 +62,39 @@ func startServer() int {
 
 	server.StopServers()
 	return 0
+}
+
+func writeClientExecutable() error {
+	var err error
+
+	clientExecutablePath := util.GetClientExecutablePath()
+
+	err = os.MkdirAll(filepath.Dir(clientExecutablePath), 0o755)
+	if err != nil {
+		logs.Error("can't create directory for client executable:", err)
+		return err
+	}
+
+	file, err := os.Create(clientExecutablePath)
+	if err != nil {
+		logs.Error("can't create directory for client executable:", err)
+		return err
+	}
+	defer file.Close()
+
+	err = file.Chmod(0o755)
+	if err != nil {
+		logs.Error("can't create directory for client executable:", err)
+		return err
+	}
+
+	_, err = file.Write(ClientExecutableData)
+	if err != nil {
+		logs.Error("can't write client executable", err)
+		return err
+	}
+
+	logs.Info("client executable created in:", clientExecutablePath)
+
+	return nil
 }
