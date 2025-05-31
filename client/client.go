@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 
 	"github.com/taukakao/browser-glue/lib/util"
 )
@@ -29,7 +30,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	socketPath := util.GenerateSocketPath(extensionName)
+	exec, err := os.Executable()
+	if err != nil {
+		printSimpleError("failed to get path to executable:", err)
+		os.Exit(1)
+	}
+
+	socketPath := util.GenerateSocketPath(filepath.Dir(exec), extensionName)
 
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {

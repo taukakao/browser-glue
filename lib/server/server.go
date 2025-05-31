@@ -83,7 +83,7 @@ func (serv *Server) Run() error {
 
 	defer logs.Debug("server exited", serv.ExtensionName)
 
-	socketPath := util.GenerateSocketPath(serv.ExtensionName)
+	socketPath := util.GenerateSocketPath(util.GetCustomUserDataDir(), serv.ExtensionName)
 
 	os.MkdirAll(filepath.Dir(socketPath), 0o775)
 	os.Remove(socketPath)

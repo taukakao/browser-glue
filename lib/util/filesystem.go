@@ -10,9 +10,10 @@ import (
 	"github.com/taukakao/browser-glue/lib/logs"
 )
 
-func GenerateSocketPath(extensionName string) string {
+func GenerateSocketPath(socketDir string, extensionName string) string {
 	socketNameEncoded := socketEncoding.EncodeToString([]byte(extensionName))
-	return fmt.Sprintf(socketPathFormat, socketNameEncoded)
+	socketFileName := fmt.Sprintf("%s.socket", socketNameEncoded)
+	return filepath.Join(socketDir, socketFileName)
 }
 
 func FindHomeDirPath() string {
@@ -64,5 +65,4 @@ var customUserDataDir string = filepath.Join(findUserDataDirPath(), shortAppId)
 var customUserConfigDir string = filepath.Join(findUserConfigDir(), shortAppId)
 var clientExecutableDir string = filepath.Join(customUserDataDir, "client")
 var clientExecutablePath string = filepath.Join(clientExecutableDir, "client")
-var socketPathFormat string = filepath.Join(clientExecutableDir, "%s.socket")
 var socketEncoding = base64.NewEncoding("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-")
