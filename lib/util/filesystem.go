@@ -22,8 +22,9 @@ func FindHomeDirPath() string {
 		currentUser, err := user.Current()
 		if err != nil || currentUser.Username == "" {
 			// If this happens then something is very wrong with the system
-			logs.Error("could not find the home dir:", err)
-			panic(fmt.Sprintln("can't continue without knowing the home dir"))
+			err = fmt.Errorf("could not find the home dir: %w", err)
+			logs.Error(err)
+			panic(err)
 		}
 		homeDir = filepath.Join("/", "home", currentUser.Username)
 	}

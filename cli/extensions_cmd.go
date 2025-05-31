@@ -145,7 +145,8 @@ func selectExtensions(browser settings.Browser) int {
 func collectConfigFiles(browser settings.Browser) ([]config.NativeConfigFile, []string, []string, int) {
 	configFiles, err := config.CollectConfigFiles(browser)
 	if err != nil {
-		logs.Error("problem while looking for extension config files:", err)
+		err = fmt.Errorf("problem while looking for extension config files: %w", err)
+		logs.Error(err)
 		return configFiles, []string{}, []string{}, 1
 	}
 	if len(configFiles) == 0 {

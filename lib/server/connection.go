@@ -46,20 +46,23 @@ func handleConnection(commandPath string, configPath string, extensionName strin
 	stdin, err := cmd.StdinPipe()
 	defer stdin.Close()
 	if err != nil {
-		logs.Error("could not open the Stdin pipe for", extensionName, ":", err)
+		err = fmt.Errorf("could not open the Stdin pipe for %s: %w", extensionName, err)
+		logs.Error(err)
 		return err
 	}
 
 	stdout, err := cmd.StdoutPipe()
 	defer stdout.Close()
 	if err != nil {
-		logs.Error("could not open the Stdout pipe", extensionName, ":", err)
+		err = fmt.Errorf("could not open the Stdout pipe for %s: %w", extensionName, err)
+		logs.Error(err)
 		return err
 	}
 
 	err = cmd.Start()
 	if err != nil {
-		logs.Error("could not start the command for", extensionName, ":", err)
+		err = fmt.Errorf("could not start the command for %s: %w", extensionName, err)
+		logs.Error(err)
 		return err
 	}
 
@@ -78,7 +81,8 @@ func handleConnection(commandPath string, configPath string, extensionName strin
 			logs.Debug("end of stream", extensionName)
 			break
 		}
-		logs.Error("failed to copy stream", err)
+		err = fmt.Errorf("failed to copy stream for %s: %w", extensionName, err)
+		logs.Error(err)
 	}
 
 	logs.Info("stopping connection for", extensionName)
@@ -114,7 +118,8 @@ func (s *sniffer) Write(p []byte) (retlen int, reterr error) {
 		messageSize |= uint32(msgSizeEncoded[0])
 
 		if uint64(messageSize) > uint64(len(p)) {
-			logs.Error("message too large to decode", string(p))
+			err := errors.New("message too large to decode: " + string(p))
+			logs.Error(err)
 			return
 		}
 
@@ -125,7 +130,8 @@ func (s *sniffer) Write(p []byte) (retlen int, reterr error) {
 
 		err := json.Unmarshal(message, &result)
 		if err != nil {
-			logs.Error("can't unmarshal message", string(message))
+			err := errors.New("can't unmarshal message: " + string(message))
+			logs.Error(err)
 			return
 		}
 

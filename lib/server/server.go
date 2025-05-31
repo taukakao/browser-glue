@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -19,7 +20,8 @@ var ErrNoConfigFiles = errors.New("no config files found")
 func RunEnabledServersBackground(browser settings.Browser, exitChan chan error) error {
 	nativeConfigs, err := config.CollectEnabledConfigFiles(browser)
 	if err != nil {
-		logs.Error("can't collect config files", err)
+		err = fmt.Errorf("can't collect config files: %w", err)
+		logs.Error(err)
 		return err
 	}
 	if len(nativeConfigs) == 0 {
@@ -41,7 +43,10 @@ func RunEnabledServersBackground(browser settings.Browser, exitChan chan error) 
 
 			err := reloadEnabledServers(browser, exitChan)
 			if err != nil {
-				logs.Error("failed reloading servers:", err)
+				err = fmt.Errorf("failed reloading servers: %w", err)
+				logs.Error(err)
+
+				StopServers()
 			}
 		}
 	}()
@@ -90,6 +95,7 @@ func (serv *Server) Run() error {
 	listener, err := net.Listen("unix", socketPath)
 
 	if err != nil {
+		err = fmt.Errorf("can't listen on socket %s: %w", socketPath, err)
 		logs.Error(err)
 		return err
 	}
@@ -117,7 +123,8 @@ func (serv *Server) Run() error {
 				retries--
 				continue
 			} else {
-				logs.Error("failed to establish connection", err)
+				err = fmt.Errorf("failed to establish connection for %s: %w", serv.ExtensionName, err)
+				logs.Error(err)
 				return err
 			}
 
@@ -156,7 +163,8 @@ func reloadEnabledServers(browser settings.Browser, exitChan chan error) error {
 
 	nativeConfigs, err := config.CollectEnabledConfigFiles(browser)
 	if err != nil {
-		logs.Error("can't collect config files", err)
+		err = fmt.Errorf("can't collect config files: %w", err)
+		logs.Error(err)
 		return err
 	}
 	if len(nativeConfigs) == 0 {

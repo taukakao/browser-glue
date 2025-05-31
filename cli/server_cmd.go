@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -71,26 +72,30 @@ func writeClientExecutable() error {
 
 	err = os.MkdirAll(filepath.Dir(clientExecutablePath), 0o755)
 	if err != nil {
-		logs.Error("can't create directory for client executable:", err)
+		err = fmt.Errorf("can't create directory for client executable: %w", err)
+		logs.Error(err)
 		return err
 	}
 
 	file, err := os.Create(clientExecutablePath)
 	if err != nil {
-		logs.Error("can't create directory for client executable:", err)
+		err = fmt.Errorf("can't create client executable file: %w", err)
+		logs.Error(err)
 		return err
 	}
 	defer file.Close()
 
 	err = file.Chmod(0o755)
 	if err != nil {
-		logs.Error("can't create directory for client executable:", err)
+		err = fmt.Errorf("can't change permissions for client executable file: %w", err)
+		logs.Error(err)
 		return err
 	}
 
 	_, err = file.Write(ClientExecutableData)
 	if err != nil {
-		logs.Error("can't write client executable", err)
+		err = fmt.Errorf("can't write client executable: %w", err)
+		logs.Error(err)
 		return err
 	}
 

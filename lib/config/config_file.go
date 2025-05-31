@@ -33,7 +33,8 @@ func (config *NativeConfigFile) IsEnabled() bool {
 		logs.Info("flatpak config file for", config.Path, "is missing, creating it")
 		err := config.writeConfigToFlatpakDir()
 		if err != nil {
-			logs.Error("could not write config", config.Path, "to flatpak directory:", err)
+			err = fmt.Errorf("could not write config %s to flatpak directory: %w", config.Path, err)
+			logs.Error(err)
 		}
 	}
 
@@ -43,12 +44,14 @@ func (config *NativeConfigFile) IsEnabled() bool {
 func (config *NativeConfigFile) Enable() error {
 	err := settings.SetNativeConfigFileEnabled(config.browser, config.Name(), true)
 	if err != nil {
-		logs.Error("could not change setting of config file:", err)
+		err = fmt.Errorf("could not change setting of config file: %w", err)
+		logs.Error(err)
 		return err
 	}
 	err = config.writeConfigToFlatpakDir()
 	if err != nil {
-		logs.Error("could not write config to flatpak directory:", err)
+		err = fmt.Errorf("could not write config to flatpak directory: %w", err)
+		logs.Error(err)
 		return err
 	}
 	return nil
@@ -57,7 +60,8 @@ func (config *NativeConfigFile) Enable() error {
 func (config *NativeConfigFile) Disable() error {
 	err := settings.SetNativeConfigFileEnabled(config.browser, config.Name(), false)
 	if err != nil {
-		logs.Error("could not change setting of config file:", err)
+		err = fmt.Errorf("could not change setting of config file: %w", err)
+		logs.Error(err)
 		return err
 	}
 	err = config.deleteConfigInFlatpakDir()
@@ -94,7 +98,8 @@ func (config *NativeConfigFile) writeConfigToFlatpakDir() error {
 	flatpakConfig.ConvertToCustomConfig()
 	err := flatpakConfig.WriteFile(flatpakPath)
 	if err != nil {
-		logs.Error("could not create native config in flatpak folder", err)
+		err = fmt.Errorf("could not create native config in flatpak folder: %w", err)
+		logs.Error(err)
 		return err
 	}
 
@@ -109,7 +114,8 @@ func (config *NativeConfigFile) deleteConfigInFlatpakDir() error {
 	}
 	err := os.Remove(flatpakPath)
 	if err != nil {
-		logs.Error("could not remove config file:", err)
+		err = fmt.Errorf("could not remove config file: %w", err)
+		logs.Error(err)
 		return err
 	}
 	return nil
@@ -146,7 +152,8 @@ func CollectConfigFiles(browser settings.Browser) (configFiles []NativeConfigFil
 
 	hostConfigFiles, err := collectConfigFilePathsInFolder(hostFolderPath)
 	if err != nil {
-		logs.Error("can't find native messaging config files", err)
+		err = fmt.Errorf("can't find native messaging config files: %w", err)
+		logs.Error(err)
 		return
 	}
 
@@ -154,7 +161,8 @@ func CollectConfigFiles(browser settings.Browser) (configFiles []NativeConfigFil
 		decoded := NativeMessagingConfig{}
 		err = decoded.ParseFile(hostConfigFile)
 		if err != nil {
-			logs.Error("failed to parse config file", hostConfigFile, ":", err)
+			err = fmt.Errorf("failed to parse config file %s: %w", hostConfigFile, err)
+			logs.Error(err)
 			return
 		}
 		configFiles = append(configFiles, NativeConfigFile{Path: hostConfigFile, Content: decoded, browser: browser})
@@ -167,7 +175,8 @@ func collectConfigFilePathsInFolder(folderPath string) ([]string, error) {
 	var configFiles []string
 	files, err := os.ReadDir(folderPath)
 	if err != nil {
-		logs.Error("Error reading directory:", err)
+		err = fmt.Errorf("Error reading directory %s: %w", folderPath, err)
+		logs.Error(err)
 		return configFiles, err
 	}
 

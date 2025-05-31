@@ -2,6 +2,7 @@ package settings
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"slices"
 	"sync"
@@ -71,15 +72,18 @@ func init() {
 		logs.Info("creating config file", viper.ConfigFileUsed())
 		err = os.MkdirAll(userConfigDir, 0o775)
 		if err != nil {
+			err = fmt.Errorf("can't create user config dir %s: %w", userConfigDir, err)
 			logs.Error(err)
 		}
 		err = viper.SafeWriteConfig()
 		if err != nil {
-			logs.Error("could not write config file", err)
+			err = fmt.Errorf("could not write config file: %w", err)
+			logs.Error(err)
 			panic(err)
 		}
 	} else if err != nil {
-		logs.Error("could not read config", viper.ConfigFileUsed(), err)
+		err = fmt.Errorf("could not read config %s: %w", viper.ConfigFileUsed(), err)
+		logs.Error(err)
 		panic(err)
 	}
 
