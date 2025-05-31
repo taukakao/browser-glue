@@ -1,14 +1,12 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"github.com/pterm/pterm"
@@ -95,58 +93,61 @@ func customCopyGo(dst io.Writer, src io.Reader, wg *sync.WaitGroup, exitChan cha
 	defer wg.Done()
 	var err error
 
-	_, err = io.Copy(io.MultiWriter(dst, &sniffer{extensionName, isreceiver}), src)
+	_, err = io.Copy(io.MultiWriter(dst, &sniffer{extensionName: extensionName, isReceiver: isreceiver}), src)
 	exitChan <- err
 }
 
 type sniffer struct {
-	string
-	bool
+	extensionName string
+	isReceiver    bool
+	remaining     uint32
+	message       []byte
 }
+
+const kilobyte = 1000
 
 func (s *sniffer) Write(p []byte) (retlen int, reterr error) {
 	retlen = len(p)
 	reterr = nil
 
-	for len(p) >= 4 {
-		msgSizeEncoded := p[:4]
-		p = p[4:]
+	for len(p) > 0 {
 
-		messageSize := uint32(msgSizeEncoded[3]) << 8 * 3
-		messageSize |= uint32(msgSizeEncoded[2]) << 8 * 2
-		messageSize |= uint32(msgSizeEncoded[1]) << 8
-		messageSize |= uint32(msgSizeEncoded[0])
+		if s.remaining == 0 {
+			if len(p) < 4 {
+				return
+			}
+			msgSizeEncoded := p[:4]
+			p = p[4:]
 
-		if uint64(messageSize) > uint64(len(p)) {
-			err := errors.New("message too large to decode: " + string(p))
-			logs.Error(err)
+			messageSize := uint32(msgSizeEncoded[3]) << 8 * 3
+			messageSize |= uint32(msgSizeEncoded[2]) << 8 * 2
+			messageSize |= uint32(msgSizeEncoded[1]) << 8
+			messageSize |= uint32(msgSizeEncoded[0])
+
+			s.remaining = messageSize
+		}
+
+		if len(p) < int(s.remaining) {
+			s.message = append(s.message, p...)
+			s.remaining -= uint32(len(p))
 			return
 		}
 
-		message := p[:messageSize]
-		p = p[messageSize:]
+		s.message = append(s.message, p[:s.remaining]...)
+		p = p[s.remaining:]
+		s.remaining = 0
 
-		var result map[string]any
-
-		err := json.Unmarshal(message, &result)
-		if err != nil {
-			err := errors.New("can't unmarshal message: " + string(message))
-			logs.Error(err)
-			return
-		}
-
-		parts := []string{}
-		for key, value := range result {
-			parts = append(parts, key+": "+fmt.Sprint(value))
-		}
-
-		final := strings.Join(parts, "\n") + "\n"
-
-		if s.bool {
-			pterm.NewRGB(200, 100, 0).Println(final)
+		if s.isReceiver {
+			pterm.NewRGB(200, 100, 0).Println(s.extensionName, "-> App")
+			pterm.NewRGB(250, 150, 0).Println(string(s.message))
+			pterm.Println("")
 		} else {
-			pterm.NewRGB(0, 100, 100).Println(final)
+			pterm.NewRGB(0, 150, 150).Println("App ->", s.extensionName)
+			pterm.NewRGB(0, 200, 200).Println(string(s.message))
+			pterm.Println("")
 		}
+
+		s.message = []byte{}
 	}
 	return
 }
