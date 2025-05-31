@@ -52,7 +52,7 @@ func listExtensions(browser settings.Browser) int {
 		browser = browserNew
 	}
 
-	configFiles, _, _, exitCode := collectConfigFiles()
+	configFiles, _, _, exitCode := collectConfigFiles(browser)
 	if exitCode != 0 {
 		return exitCode
 	}
@@ -60,9 +60,6 @@ func listExtensions(browser settings.Browser) int {
 	data := [][]string{{"Extension Config Name", "Enabled", "Included Extensions"}}
 
 	for _, configFile := range configFiles {
-		if configFile.GetBrowser() != browser {
-			continue
-		}
 		newLine := []string{configFile.Name(), fmt.Sprint(configFile.IsEnabled()), fmt.Sprint(configFile.Content.AllowedExtensions)}
 		data = append(data, newLine)
 	}
@@ -93,7 +90,7 @@ func selectExtensions(browser settings.Browser) int {
 		WithKeyConfirm(keys.Enter).
 		WithKeySelect(keys.Space)
 
-	configFiles, configFileNames, enabledConfigFileNames, exitCode := collectConfigFiles()
+	configFiles, configFileNames, enabledConfigFileNames, exitCode := collectConfigFiles(browser)
 	if exitCode != 0 {
 		return exitCode
 	}
@@ -145,8 +142,8 @@ func selectExtensions(browser settings.Browser) int {
 	return finalErrCode
 }
 
-func collectConfigFiles() ([]config.NativeConfigFile, []string, []string, int) {
-	configFiles, err := config.CollectConfigFiles(settings.Firefox)
+func collectConfigFiles(browser settings.Browser) ([]config.NativeConfigFile, []string, []string, int) {
+	configFiles, err := config.CollectConfigFiles(browser)
 	if err != nil {
 		logs.Error("problem while looking for extension config files:", err)
 		return configFiles, []string{}, []string{}, 1
