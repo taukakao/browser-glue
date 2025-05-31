@@ -38,6 +38,10 @@ func GetCustomUserConfigDir() string {
 	return customUserConfigDir
 }
 
+func GetClientExecutableDir() string {
+	return clientExecutableDir
+}
+
 func GetClientExecutablePath() string {
 	return clientExecutablePath
 }
