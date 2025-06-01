@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -140,17 +141,36 @@ func (s *sniffer) Write(p []byte) (retlen int, reterr error) {
 		p = p[s.remaining:]
 		s.remaining = 0
 
-		if s.isReceiver {
-			pterm.NewRGB(200, 100, 0).Println(s.extensionName, "-> App")
-			pterm.NewRGB(250, 150, 0).Println(string(s.message))
-			pterm.Println("")
-		} else {
-			pterm.NewRGB(0, 150, 150).Println("App ->", s.extensionName)
-			pterm.NewRGB(0, 200, 200).Println(string(s.message))
-			pterm.Println("")
-		}
+		s.printout()
 
 		s.message = []byte{}
 	}
 	return
+}
+
+func (s *sniffer) printout() {
+	var coloredOutput pterm.RGB
+	if s.isReceiver {
+		pterm.NewRGB(200, 100, 0).Println(s.extensionName, "-> App")
+		coloredOutput = pterm.NewRGB(250, 150, 0)
+	} else {
+		pterm.NewRGB(0, 150, 150).Println("App ->", s.extensionName)
+		coloredOutput = pterm.NewRGB(0, 200, 200)
+	}
+	defer coloredOutput.Println("")
+
+	var encoded any
+	err := json.Unmarshal(s.message, &encoded)
+	if err != nil {
+		coloredOutput.Println(string(s.message))
+		return
+	}
+
+	resultEncoded, err := json.MarshalIndent(encoded, "", "   ")
+	if err != nil {
+		coloredOutput.Println(string(s.message))
+		return
+	}
+
+	coloredOutput.Println(string(resultEncoded))
 }
