@@ -41,7 +41,7 @@ func RunEnabledServersBackground(browser settings.Browser, listenIn bool, exitCh
 		for {
 			<-changes
 
-			err := reloadEnabledServers(browser, exitChan)
+			err := reloadEnabledServers(browser, listenIn, exitChan)
 			if err != nil {
 				err = fmt.Errorf("failed reloading servers: %w", err)
 				logs.Error(err)
@@ -83,8 +83,9 @@ func (serv *Server) Run(listenIn bool) error {
 
 	serv.stop = make(chan struct{}, 1)
 
-	runningServers.Add(serv)
-	defer runningServers.Remove(serv)
+	serverMapKey := createServerMapKey(serv.ConfigFile.Name(), serv.ExtensionName)
+	runningServers.Add(serverMapKey, serv)
+	defer runningServers.Remove(serverMapKey)
 
 	defer logs.Debug("server exited", serv.ExtensionName)
 
@@ -146,7 +147,7 @@ func (serv *Server) Run(listenIn bool) error {
 }
 
 func StopServers() {
-	currentlyRunning := runningServers.Copy()
+	currentlyRunning := runningServers.GetList()
 	for _, server := range currentlyRunning {
 		server.StopBackground()
 	}
@@ -156,11 +157,9 @@ func StopServers() {
 	logs.Debug("all servers exited")
 }
 
-var runningServers threadSafeServerList
+var runningServers threadSafeServerMap
 
-func reloadEnabledServers(browser settings.Browser, exitChan chan error) error {
-	currentlyRunning := runningServers.Copy()
-
+func reloadEnabledServers(browser settings.Browser, listenIn bool, exitChan chan error) error {
 	nativeConfigs, err := config.CollectEnabledConfigFiles(browser)
 	if err != nil {
 		err = fmt.Errorf("can't collect config files: %w", err)
@@ -172,71 +171,122 @@ func reloadEnabledServers(browser settings.Browser, exitChan chan error) error {
 		return nil
 	}
 
-	for _, runningServer := range currentlyRunning {
-		enabled := slices.ContainsFunc(nativeConfigs, func(conf config.NativeConfigFile) bool {
-			pathMatches := conf.Path == runningServer.ConfigFile.Path
-			extensionMatches := slices.Contains(conf.Content.AllowedExtensions, runningServer.ExtensionName)
-			return pathMatches && extensionMatches
-		})
+	enabledConfigMap := make(map[string]config.NativeConfigFile)
+	for _, config := range nativeConfigs {
+		for _, extensionName := range config.Content.AllowedExtensions {
+			serverMapKey := createServerMapKey(config.Name(), extensionName)
+			enabledConfigMap[serverMapKey] = config
+		}
+	}
+
+	for _, runningServerKey := range runningServers.GetKeyList() {
+		_, enabled := enabledConfigMap[runningServerKey]
 		if enabled {
 			continue
 		}
 
-		runningServer.StopBackground()
-	}
-
-	for _, nativeConfig := range nativeConfigs {
-		for _, extension := range nativeConfig.Content.AllowedExtensions {
-			running := slices.ContainsFunc(currentlyRunning, func(serv *Server) bool {
-				pathMatches := nativeConfig.Path == serv.ConfigFile.Path
-				extensionMatches := extension == serv.ExtensionName
-				return pathMatches && extensionMatches
-			})
-			if running {
-				continue
-			}
-
-			serv := Server{ConfigFile: nativeConfig, ExtensionName: extension}
-			serv.RunBackground(false, exitChan)
+		server, ok := runningServers.Get(runningServerKey)
+		if !ok {
+			continue
 		}
+
+		server.StopBackground()
 	}
+
+	for enabledServerKey, config := range enabledConfigMap {
+		_, running := runningServers.Get(enabledServerKey)
+		if running {
+			continue
+		}
+
+		extensionName := extensionNameFromMapKey(enabledServerKey)
+
+		server := Server{ConfigFile: config, ExtensionName: extensionName}
+
+		server.RunBackground(listenIn, exitChan)
+	}
+
 	return nil
 }
 
-type threadSafeServerList struct {
-	servers []*Server
+func createServerMapKey(configName string, extensionName string) string {
+	serverMapKey := append([]byte(extensionName), 0x7F)
+	serverMapKey = append(serverMapKey, []byte(configName)...)
+	return string(serverMapKey)
+}
+
+func extensionNameFromMapKey(mapKey string) string {
+	mapKeyBytes := []byte(mapKey)
+	i := slices.Index(mapKeyBytes, 0x7F)
+	if i < 0 {
+		panic("Map key " + fmt.Sprint(mapKeyBytes) + " with string representation " + mapKey + " is malformed!")
+	}
+	return string(mapKeyBytes[0:i])
+}
+
+type threadSafeServerMap struct {
+	servers map[string]*Server
 	sync.Mutex
 }
 
-func (sl *threadSafeServerList) Add(s *Server) {
+func (sl *threadSafeServerMap) Add(key string, s *Server) {
 	sl.Lock()
 	defer sl.Unlock()
 
-	sl.servers = append(sl.servers, s)
+	if sl.servers == nil {
+		sl.servers = make(map[string]*Server)
+	}
+
+	sl.servers[key] = s
 }
 
-func (sl *threadSafeServerList) Remove(s *Server) bool {
+func (sl *threadSafeServerMap) Remove(key string) bool {
 	sl.Lock()
 	defer sl.Unlock()
 
-	index := slices.Index(sl.servers, s)
-	if index < 0 {
+	if _, ok := sl.servers[key]; !ok {
 		return false
 	}
 
-	sl.servers = slices.Delete(sl.servers, index, index+1)
+	delete(sl.servers, key)
 	return true
 }
 
-func (sl *threadSafeServerList) Copy() []*Server {
+func (sl *threadSafeServerMap) Get(key string) (*Server, bool) {
 	sl.Lock()
 	defer sl.Unlock()
 
-	currentlyRunning := make([]*Server, len(sl.servers))
-	copy(currentlyRunning, sl.servers)
-	return currentlyRunning
+	server, ok := sl.servers[key]
+
+	return server, ok
 }
 
-func (sl *threadSafeServerList) Len() int {
+func (sl *threadSafeServerMap) GetKeyList() []string {
+	sl.Lock()
+	defer sl.Unlock()
+
+	allKeys := []string{}
+
+	for k := range sl.servers {
+		allKeys = append(allKeys, k)
+	}
+
+	return allKeys
+}
+
+func (sl *threadSafeServerMap) GetList() []*Server {
+	sl.Lock()
+	defer sl.Unlock()
+
+	allServers := []*Server{}
+
+	for _, v := range sl.servers {
+		allServers = append(allServers, v)
+	}
+
+	return allServers
+}
+
+func (sl *threadSafeServerMap) Len() int {
 	return len(sl.servers)
 }
