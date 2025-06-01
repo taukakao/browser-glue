@@ -17,7 +17,7 @@ import (
 
 var ErrNoConfigFiles = errors.New("no config files found")
 
-func RunEnabledServersBackground(browser settings.Browser, exitChan chan error) error {
+func RunEnabledServersBackground(browser settings.Browser, listenIn bool, exitChan chan error) error {
 	nativeConfigs, err := config.CollectEnabledConfigFiles(browser)
 	if err != nil {
 		err = fmt.Errorf("can't collect config files: %w", err)
@@ -30,7 +30,7 @@ func RunEnabledServersBackground(browser settings.Browser, exitChan chan error) 
 	for _, nativeConfig := range nativeConfigs {
 		for _, extension := range nativeConfig.Content.AllowedExtensions {
 			serv := Server{ConfigFile: nativeConfig, ExtensionName: extension}
-			serv.RunBackground(exitChan)
+			serv.RunBackground(listenIn, exitChan)
 		}
 	}
 
@@ -64,8 +64,8 @@ type Server struct {
 	stop    chan struct{}
 }
 
-func (serv *Server) RunBackground(exitChan chan error) {
-	go func() { exitChan <- serv.Run() }()
+func (serv *Server) RunBackground(listenIn bool, exitChan chan error) {
+	go func() { exitChan <- serv.Run(listenIn) }()
 }
 
 func (serv *Server) StopBackground() {
@@ -75,7 +75,7 @@ func (serv *Server) StopBackground() {
 	serv.stop <- struct{}{}
 }
 
-func (serv *Server) Run() error {
+func (serv *Server) Run(listenIn bool) error {
 	if serv.running {
 		return ErrAlreadyRunning
 	}
@@ -115,7 +115,7 @@ func (serv *Server) Run() error {
 		select {
 		case conn := <-connChan:
 			retries = 5
-			go handleConnection(serv.ConfigFile.Content.Executable, serv.ConfigFile.Path, serv.ExtensionName, conn, stopConnectionSignal, &connectionWait)
+			go handleConnection(serv.ConfigFile.Content.Executable, serv.ConfigFile.Path, serv.ExtensionName, listenIn, conn, stopConnectionSignal, &connectionWait)
 
 		case err := <-errChan:
 			if retries > 0 {
@@ -197,7 +197,7 @@ func reloadEnabledServers(browser settings.Browser, exitChan chan error) error {
 			}
 
 			serv := Server{ConfigFile: nativeConfig, ExtensionName: extension}
-			serv.RunBackground(exitChan)
+			serv.RunBackground(false, exitChan)
 		}
 	}
 	return nil

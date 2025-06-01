@@ -38,7 +38,7 @@ func startServer() int {
 	}
 
 	exitChan := make(chan error)
-	err = server.RunEnabledServersBackground(settings.Firefox, exitChan)
+	err = server.RunEnabledServersBackground(settings.Firefox, *listenIn, exitChan)
 
 	if errors.Is(err, server.ErrNoConfigFiles) {
 		pterm.Error.Println("You have not enabled any configs yet.")
@@ -102,4 +102,10 @@ func writeClientExecutable() error {
 	logs.Info("client executable created in:", clientExecutablePath)
 
 	return nil
+}
+
+var listenIn *bool
+
+func init() {
+	listenIn = serverCmd.PersistentFlags().BoolP("listen-in", "l", false, "print out messages that are sent through this program")
 }

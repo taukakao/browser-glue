@@ -22,7 +22,7 @@ func acceptConnection(listener net.Listener, errChan chan error, connChan chan n
 	connChan <- conn
 }
 
-func handleConnection(commandPath string, configPath string, extensionName string, conn net.Conn, stop chan bool, wg *sync.WaitGroup) error {
+func handleConnection(commandPath string, configPath string, extensionName string, listenIn bool, conn net.Conn, stop chan bool, wg *sync.WaitGroup) error {
 	defer logs.Debug("connection exited", extensionName)
 
 	wg.Add(1)
@@ -66,8 +66,8 @@ func handleConnection(commandPath string, configPath string, extensionName strin
 
 	exitChan := make(chan error, 2)
 
-	go customCopyGo(stdin, conn, &copyWait, exitChan, extensionName, true)
-	go customCopyGo(conn, stdout, &copyWait, exitChan, extensionName, false)
+	go customCopyGo(stdin, conn, &copyWait, exitChan, extensionName, true, listenIn)
+	go customCopyGo(conn, stdout, &copyWait, exitChan, extensionName, false, listenIn)
 
 	select {
 	case <-stop:
@@ -88,12 +88,15 @@ func handleConnection(commandPath string, configPath string, extensionName strin
 	return nil
 }
 
-func customCopyGo(dst io.Writer, src io.Reader, wg *sync.WaitGroup, exitChan chan error, extensionName string, isreceiver bool) {
+func customCopyGo(dst io.Writer, src io.Reader, wg *sync.WaitGroup, exitChan chan error, extensionName string, isreceiver bool, enableSniffer bool) {
 	wg.Add(1)
 	defer wg.Done()
 	var err error
 
-	_, err = io.Copy(io.MultiWriter(dst, &sniffer{extensionName: extensionName, isReceiver: isreceiver}), src)
+	if enableSniffer {
+		dst = io.MultiWriter(dst, &sniffer{extensionName: extensionName, isReceiver: isreceiver})
+	}
+	_, err = io.Copy(dst, src)
 	exitChan <- err
 }
 
