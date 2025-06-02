@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"strings"
 
 	"atomicgo.dev/keyboard/keys"
 	"github.com/pterm/pterm"
@@ -13,37 +14,37 @@ import (
 	"github.com/taukakao/browser-glue/lib/settings"
 )
 
-var extensionsCmd = &cobra.Command{
-	Use:   "extensions",
-	Short: "Configure extensions",
-	Long:  `Select if extensions should be enabled or disabled.`,
+var appsCmd = &cobra.Command{
+	Use:   "apps",
+	Short: "Configure apps",
+	Long:  `Select if apps should be enabled or disabled.`,
 }
 
-var extensionsListCmd = &cobra.Command{
+var appsListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List extensions",
-	Long:  `Print out a list of all extensions and information about them.`,
+	Short: "List apps",
+	Long:  `Print out a list of all apps and information about them.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		exitCode := listExtensions(selectedBrowserFlag.Browser)
+		exitCode := listApps(selectedBrowserFlag.Browser)
 		if exitCode != 0 {
 			os.Exit(exitCode)
 		}
 	},
 }
 
-var extensionsSelectCmd = &cobra.Command{
+var appsSelectCmd = &cobra.Command{
 	Use:   "select",
-	Short: "Select extensions",
-	Long:  `Choose from a list of available extensions.`,
+	Short: "Select apps",
+	Long:  `Choose from a list of available apps.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		exitCode := selectExtensions(selectedBrowserFlag.Browser)
+		exitCode := selectApps(selectedBrowserFlag.Browser)
 		if exitCode != 0 {
 			os.Exit(exitCode)
 		}
 	},
 }
 
-func listExtensions(browser settings.Browser) int {
+func listApps(browser settings.Browser) int {
 	if browser == settings.NoneBrowser {
 		browserNew, exitCode := askForBrowser()
 		if exitCode != 0 {
@@ -57,10 +58,10 @@ func listExtensions(browser settings.Browser) int {
 		return exitCode
 	}
 
-	data := [][]string{{"Extension Config Name", "Enabled", "Included Extensions"}}
+	data := [][]string{{"App Config Name", "Enabled", "Supported Extensions"}}
 
 	for _, configFile := range configFiles {
-		newLine := []string{configFile.Name(), fmt.Sprint(configFile.IsEnabled()), fmt.Sprint(configFile.Content.AllowedExtensions)}
+		newLine := []string{configFile.Name(), fmt.Sprint(configFile.IsEnabled()), strings.Join(configFile.Content.AllowedExtensions, " | ")}
 		data = append(data, newLine)
 	}
 
@@ -74,7 +75,7 @@ func listExtensions(browser settings.Browser) int {
 	return 0
 }
 
-func selectExtensions(browser settings.Browser) int {
+func selectApps(browser settings.Browser) int {
 	if browser == settings.NoneBrowser {
 		browserNew, exitCode := askForBrowser()
 		if exitCode != 0 {
@@ -96,7 +97,7 @@ func selectExtensions(browser settings.Browser) int {
 	}
 
 	selectedConfigs, err := customMultiselect.
-		WithDefaultText("Select which extensions to enable").
+		WithDefaultText("Select which apps to enable").
 		WithOptions(configFileNames).
 		WithDefaultOptions(enabledConfigFileNames).
 		Show()
@@ -129,23 +130,23 @@ func selectExtensions(browser settings.Browser) int {
 		err = config.Enable()
 
 		if err != nil {
-			pterm.Error.Println("Failed to enable extension", config.Name(), ":", err)
+			pterm.Error.Println("Failed to enable app", config.Name(), ":", err)
 			finalErrCode = 1
 			continue
 		}
 
-		pterm.Info.Println("Extension", config.Name(), "enabaled")
+		pterm.Info.Println("App", config.Name(), "enabaled")
 	}
 	for _, config := range disableConfigs {
 		err = config.Disable()
 
 		if err != nil {
-			pterm.Error.Println("Failed to disable extension", config.Name(), ":", err)
+			pterm.Error.Println("Failed to disable app", config.Name(), ":", err)
 			finalErrCode = 1
 			continue
 		}
 
-		pterm.Info.Println("Extension", config.Name(), "disabled")
+		pterm.Info.Println("App", config.Name(), "disabled")
 	}
 
 	pterm.Info.Println("Server will be reloaded automatically if it's running")
@@ -156,12 +157,12 @@ func selectExtensions(browser settings.Browser) int {
 func collectConfigFiles(browser settings.Browser) ([]config.NativeConfigFile, []string, []string, int) {
 	configFiles, err := config.CollectConfigFiles(browser)
 	if err != nil {
-		err = fmt.Errorf("problem while looking for extension config files: %w", err)
+		err = fmt.Errorf("problem while looking for app configuration files: %w", err)
 		logs.Error(err)
 		return configFiles, []string{}, []string{}, 1
 	}
 	if len(configFiles) == 0 {
-		pterm.Error.Println("Could not find any extension config files")
+		pterm.Error.Println("Could not find any app configuration files")
 		return configFiles, []string{}, []string{}, 1
 	}
 
@@ -178,6 +179,6 @@ func collectConfigFiles(browser settings.Browser) ([]config.NativeConfigFile, []
 }
 
 func init() {
-	extensionsCmd.AddCommand(extensionsListCmd)
-	extensionsCmd.AddCommand(extensionsSelectCmd)
+	appsCmd.AddCommand(appsListCmd)
+	appsCmd.AddCommand(appsSelectCmd)
 }

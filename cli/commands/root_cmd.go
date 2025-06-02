@@ -73,8 +73,8 @@ func (bv *BrowserValue) Type() string {
 var selectedBrowserFlag BrowserValue
 
 func init() {
-	extensionsCmd.PersistentFlags().VarP(&selectedBrowserFlag, "browser", "b", "select browser")
+	rootCmd.PersistentFlags().VarP(&selectedBrowserFlag, "browser", "b", "select browser")
 
-	rootCmd.AddCommand(extensionsCmd)
+	rootCmd.AddCommand(appsCmd)
 	rootCmd.AddCommand(serverCmd)
 }
