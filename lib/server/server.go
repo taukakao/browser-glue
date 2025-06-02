@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/taukakao/browser-glue/lib/config"
+	"github.com/taukakao/browser-glue/lib/flatpak"
 	"github.com/taukakao/browser-glue/lib/logs"
 	"github.com/taukakao/browser-glue/lib/settings"
 	"github.com/taukakao/browser-glue/lib/util"
@@ -88,6 +89,8 @@ func (serv *Server) Run(listenIn bool) error {
 	defer runningServers.Remove(serverMapKey)
 
 	defer logs.Debug("server exited", serv.ExtensionName)
+
+	checkAndFixPermissionsQueue <- serv.ConfigFile.GetBrowser()
 
 	socketPath := util.GenerateSocketPath(util.GetClientExecutableDir(), serv.ExtensionName)
 
@@ -289,4 +292,32 @@ func (sl *threadSafeServerMap) GetList() []*Server {
 
 func (sl *threadSafeServerMap) Len() int {
 	return len(sl.servers)
+}
+
+var checkAndFixPermissionsQueue chan settings.Browser = make(chan settings.Browser, 10)
+
+func permissionRoutine() {
+	for browser := range checkAndFixPermissionsQueue {
+		hasPermissions, err := flatpak.CheckBrowserPermissions(browser)
+		if err != nil {
+			err = fmt.Errorf("could not check browser permissions of %s: %w", browser, err)
+			logs.Error(err)
+			continue
+		}
+
+		if hasPermissions {
+			continue
+		}
+
+		err = flatpak.FixBrowserPermissions(browser)
+		if err != nil {
+			err = fmt.Errorf("could not give browser %s the needed flatpak permissions %w", browser, err)
+			logs.Error(err)
+			continue
+		}
+	}
+}
+
+func init() {
+	go permissionRoutine()
 }

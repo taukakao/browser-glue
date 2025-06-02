@@ -36,6 +36,15 @@ func GetClientExecutablePath() string {
 	return clientExecutablePath
 }
 
+func MakePathHomeRelative(path string) string {
+	pathRel, err := filepath.Rel(homeDir, clientExecutableDir)
+	if err != nil {
+		return path
+	}
+
+	return filepath.Join("~", pathRel)
+}
+
 func findHomeDirPath() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil || homeDir == "" {
