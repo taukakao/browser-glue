@@ -265,6 +265,7 @@ func (signal *allExitSignalSafe) broadcast() {
 		for _, receiver := range signal.receivers {
 			receiver <- struct{}{}
 		}
+		signal.receivers = [](chan<- struct{}){}
 	}()
 }
 
