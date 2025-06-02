@@ -16,23 +16,9 @@ import (
 	"github.com/taukakao/browser-glue/lib/util"
 )
 
-var ErrNoConfigFiles = errors.New("no config files found")
-
-func RunEnabledServersBackground(browser settings.Browser, listenIn bool, exitChan chan error) error {
-	nativeConfigs, err := config.CollectEnabledConfigFiles(browser)
-	if err != nil {
-		err = fmt.Errorf("can't collect config files: %w", err)
-		logs.Error(err)
-		return err
-	}
-	if len(nativeConfigs) == 0 {
-		return ErrNoConfigFiles
-	}
-	for _, nativeConfig := range nativeConfigs {
-		for _, extension := range nativeConfig.Content.AllowedExtensions {
-			serv := Server{ConfigFile: nativeConfig, ExtensionName: extension}
-			serv.RunBackground(listenIn, exitChan)
-		}
+func RunEnabledServersBackground(browser settings.Browser, listenIn bool, allServersExited chan<- struct{}) {
+	if allServersExited != nil {
+		allExitedSignal.subscribe(allServersExited)
 	}
 
 	changes := make(chan struct{})
@@ -42,7 +28,7 @@ func RunEnabledServersBackground(browser settings.Browser, listenIn bool, exitCh
 		for {
 			<-changes
 
-			err := reloadEnabledServers(browser, listenIn, exitChan)
+			err := refreshEnabledServers(browser, listenIn)
 			if err != nil {
 				err = fmt.Errorf("failed reloading servers: %w", err)
 				logs.Error(err)
@@ -52,7 +38,7 @@ func RunEnabledServersBackground(browser settings.Browser, listenIn bool, exitCh
 		}
 	}()
 
-	return nil
+	changes <- struct{}{}
 }
 
 var ErrAlreadyRunning = errors.New("server already running")
@@ -60,33 +46,34 @@ var ErrAlreadyRunning = errors.New("server already running")
 type Server struct {
 	ConfigFile    config.NativeConfigFile
 	ExtensionName string
+	ListenIn      bool
 
 	running bool
 	stop    chan struct{}
 }
 
-func (serv *Server) RunBackground(listenIn bool, exitChan chan error) {
-	go func() { exitChan <- serv.Run(listenIn) }()
+func (serv *Server) RunBackground() {
+	startServerQueue <- serv
 }
 
 func (serv *Server) StopBackground() {
+	stopServerQueue <- serv
+}
+
+func (serv *Server) end() {
 	if !serv.running {
 		return
 	}
 	serv.stop <- struct{}{}
 }
 
-func (serv *Server) Run(listenIn bool) error {
+func (serv *Server) run() error {
 	if serv.running {
 		return ErrAlreadyRunning
 	}
 	serv.running = true
 
 	serv.stop = make(chan struct{}, 1)
-
-	serverMapKey := createServerMapKey(serv.ConfigFile.Name(), serv.ExtensionName)
-	runningServers.Add(serverMapKey, serv)
-	defer runningServers.Remove(serverMapKey)
 
 	defer logs.Debug("server exited", serv.ExtensionName)
 
@@ -107,7 +94,7 @@ func (serv *Server) Run(listenIn bool) error {
 
 	logs.Info("Server for", serv.ExtensionName, "listening on", socketPath)
 
-	retries := 5
+	retries := 0
 
 	stopConnectionSignal := make(chan bool)
 	var connectionWait sync.WaitGroup
@@ -115,16 +102,22 @@ func (serv *Server) Run(listenIn bool) error {
 	for {
 		connChan := make(chan net.Conn, 1)
 		errChan := make(chan error, 1)
-		go acceptConnection(listener, errChan, connChan)
+		go func() {
+			conn, err := listener.Accept()
+			if err != nil {
+				errChan <- err
+			}
+			connChan <- conn
+		}()
 		select {
 		case conn := <-connChan:
-			retries = 5
-			go handleConnection(serv.ConfigFile.Content.Executable, serv.ConfigFile.Path, serv.ExtensionName, listenIn, conn, stopConnectionSignal, &connectionWait)
+			retries = 0
+			go handleConnection(serv.ConfigFile.Content.Executable, serv.ConfigFile.Path, serv.ExtensionName, serv.ListenIn, conn, stopConnectionSignal, &connectionWait)
 
 		case err := <-errChan:
-			if retries > 0 {
-				logs.Warn("retrying connection:", err)
-				retries--
+			if retries < 5 {
+				logs.Warn("retrying connection for", serv.ExtensionName, err)
+				retries++
 				continue
 			} else {
 				err = fmt.Errorf("failed to establish connection for %s: %w", serv.ExtensionName, err)
@@ -150,149 +143,132 @@ func (serv *Server) Run(listenIn bool) error {
 }
 
 func StopServers() {
-	currentlyRunning := runningServers.GetList()
-	for _, server := range currentlyRunning {
-		server.StopBackground()
-	}
+	allExited := make(chan struct{}, 1)
+	allExitedSignal.subscribe(allExited)
+
+	stopAllServers <- struct{}{}
+
 	logs.Debug("Waiting for all servers to exit")
-	for runningServers.Len() > 0 {
-	}
+	<-allExited
 	logs.Debug("all servers exited")
 }
 
-var runningServers threadSafeServerMap
-
-func reloadEnabledServers(browser settings.Browser, listenIn bool, exitChan chan error) error {
-	nativeConfigs, err := config.CollectEnabledConfigFiles(browser)
+func refreshEnabledServers(browser settings.Browser, listenIn bool) error {
+	enabledNativeConfigs, err := config.CollectEnabledConfigFiles(browser)
 	if err != nil {
 		err = fmt.Errorf("can't collect config files: %w", err)
 		logs.Error(err)
 		return err
 	}
-	if len(nativeConfigs) == 0 {
+	if len(enabledNativeConfigs) == 0 {
+		logs.Warn("No config files are currently enabled.")
 		StopServers()
 		return nil
 	}
 
-	enabledConfigMap := make(map[string]config.NativeConfigFile)
-	for _, config := range nativeConfigs {
-		for _, extensionName := range config.Content.AllowedExtensions {
-			serverMapKey := createServerMapKey(config.Name(), extensionName)
-			enabledConfigMap[serverMapKey] = config
+	runningServers.Lock()
+	defer runningServers.Unlock()
+
+	for _, runningServer := range runningServers.servers {
+		if !runningServer.ConfigFile.IsEnabled() {
+			runningServer.StopBackground()
 		}
 	}
 
-	for _, runningServerKey := range runningServers.GetKeyList() {
-		_, enabled := enabledConfigMap[runningServerKey]
-		if enabled {
-			continue
+	for _, enabledConfig := range enabledNativeConfigs {
+		runningExtensions := []string{}
+		for _, runningServer := range runningServers.servers {
+			if enabledConfig.Matches(&runningServer.ConfigFile) {
+				runningExtensions = append(runningExtensions, runningServer.ExtensionName)
+			}
 		}
 
-		server, ok := runningServers.Get(runningServerKey)
-		if !ok {
-			continue
+		for _, extensionName := range enabledConfig.Content.AllowedExtensions {
+
+			if slices.Contains(runningExtensions, extensionName) {
+				continue
+			}
+
+			server := Server{ConfigFile: enabledConfig, ExtensionName: extensionName, ListenIn: listenIn}
+
+			server.RunBackground()
 		}
-
-		server.StopBackground()
-	}
-
-	for enabledServerKey, config := range enabledConfigMap {
-		_, running := runningServers.Get(enabledServerKey)
-		if running {
-			continue
-		}
-
-		extensionName := extensionNameFromMapKey(enabledServerKey)
-
-		server := Server{ConfigFile: config, ExtensionName: extensionName}
-
-		server.RunBackground(listenIn, exitChan)
 	}
 
 	return nil
 }
 
-func createServerMapKey(configName string, extensionName string) string {
-	serverMapKey := append([]byte(extensionName), 0x7F)
-	serverMapKey = append(serverMapKey, []byte(configName)...)
-	return string(serverMapKey)
-}
-
-func extensionNameFromMapKey(mapKey string) string {
-	mapKeyBytes := []byte(mapKey)
-	i := slices.Index(mapKeyBytes, 0x7F)
-	if i < 0 {
-		panic("Map key " + fmt.Sprint(mapKeyBytes) + " with string representation " + mapKey + " is malformed!")
-	}
-	return string(mapKeyBytes[0:i])
-}
-
-type threadSafeServerMap struct {
-	servers map[string]*Server
+type runningServersSafe struct {
 	sync.Mutex
+	servers []*Server
 }
 
-func (sl *threadSafeServerMap) Add(key string, s *Server) {
-	sl.Lock()
-	defer sl.Unlock()
+var runningServers = runningServersSafe{}
 
-	if sl.servers == nil {
-		sl.servers = make(map[string]*Server)
+var startServerQueue chan *Server = make(chan *Server)
+var stopServerQueue chan *Server = make(chan *Server)
+var stopAllServers chan struct{} = make(chan struct{})
+
+func serverManagerRoutine() {
+	for {
+		select {
+		case server := <-startServerQueue:
+			go func() {
+				runningServers.Lock()
+				runningServers.servers = append(runningServers.servers, server)
+				runningServers.Unlock()
+
+				err := server.run()
+				if err != nil {
+					logs.Error(err)
+				}
+
+				runningServers.Lock()
+				runningServers.servers = slices.DeleteFunc(runningServers.servers, func(element *Server) bool { return element == server })
+				if len(runningServers.servers) == 0 {
+					allExitedSignal.broadcast()
+				}
+				runningServers.Unlock()
+			}()
+
+		case server := <-stopServerQueue:
+			server.end()
+
+		case <-stopAllServers:
+			runningServers.Lock()
+			for _, server := range runningServers.servers {
+				go server.end()
+			}
+			if len(runningServers.servers) == 0 {
+				allExitedSignal.broadcast()
+			}
+			runningServers.Unlock()
+		}
 	}
-
-	sl.servers[key] = s
 }
 
-func (sl *threadSafeServerMap) Remove(key string) bool {
-	sl.Lock()
-	defer sl.Unlock()
-
-	if _, ok := sl.servers[key]; !ok {
-		return false
-	}
-
-	delete(sl.servers, key)
-	return true
+type allExitSignalSafe struct {
+	sync.Mutex
+	receivers []chan<- struct{}
 }
 
-func (sl *threadSafeServerMap) Get(key string) (*Server, bool) {
-	sl.Lock()
-	defer sl.Unlock()
-
-	server, ok := sl.servers[key]
-
-	return server, ok
+func (signal *allExitSignalSafe) subscribe(c chan<- struct{}) {
+	signal.Lock()
+	defer signal.Unlock()
+	signal.receivers = append(signal.receivers, c)
 }
 
-func (sl *threadSafeServerMap) GetKeyList() []string {
-	sl.Lock()
-	defer sl.Unlock()
-
-	allKeys := []string{}
-
-	for k := range sl.servers {
-		allKeys = append(allKeys, k)
-	}
-
-	return allKeys
+func (signal *allExitSignalSafe) broadcast() {
+	go func() {
+		signal.Lock()
+		defer signal.Unlock()
+		for _, receiver := range signal.receivers {
+			receiver <- struct{}{}
+		}
+	}()
 }
 
-func (sl *threadSafeServerMap) GetList() []*Server {
-	sl.Lock()
-	defer sl.Unlock()
-
-	allServers := []*Server{}
-
-	for _, v := range sl.servers {
-		allServers = append(allServers, v)
-	}
-
-	return allServers
-}
-
-func (sl *threadSafeServerMap) Len() int {
-	return len(sl.servers)
-}
+var allExitedSignal allExitSignalSafe
 
 var checkAndFixPermissionsQueue chan settings.Browser = make(chan settings.Browser, 10)
 
@@ -319,5 +295,6 @@ func permissionRoutine() {
 }
 
 func init() {
+	go serverManagerRoutine()
 	go permissionRoutine()
 }

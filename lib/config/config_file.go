@@ -25,6 +25,10 @@ func (config *NativeConfigFile) GetBrowser() settings.Browser {
 	return config.browser
 }
 
+func (config *NativeConfigFile) Matches(other *NativeConfigFile) bool {
+	return config.browser == other.browser && config.Path == other.Path
+}
+
 func (config *NativeConfigFile) IsEnabled() bool {
 	enabledConfigs := settings.EnabledNativeConfigFiles(config.browser)
 	enabled := slices.Contains(enabledConfigs, config.Name())

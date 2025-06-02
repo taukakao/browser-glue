@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -39,16 +38,15 @@ func startServer() int {
 		return 1
 	}
 
-	exitChan := make(chan error)
-	err = server.RunEnabledServersBackground(settings.Firefox, *listenIn, exitChan)
+	server.RunEnabledServersBackground(settings.Firefox, *listenIn, nil)
 
-	if errors.Is(err, server.ErrNoConfigFiles) {
-		pterm.Error.Println("You have not enabled any configs yet.")
-		return 1
-	} else if err != nil {
-		pterm.Error.Println("Could not start enabled servers:", err)
-		return 2
-	}
+	// if errors.Is(err, server.ErrNoConfigFiles) {
+	// 	pterm.Error.Println("You have not enabled any configs yet.")
+	// 	return 1
+	// } else if err != nil {
+	// 	pterm.Error.Println("Could not start enabled servers:", err)
+	// 	return 2
+	// }
 
 	pterm.Info.Println("Servers started")
 

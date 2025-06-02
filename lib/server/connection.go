@@ -14,15 +14,6 @@ import (
 	"github.com/taukakao/browser-glue/lib/logs"
 )
 
-func acceptConnection(listener net.Listener, errChan chan error, connChan chan net.Conn) {
-	conn, err := listener.Accept()
-	if err != nil {
-		errChan <- err
-	}
-
-	connChan <- conn
-}
-
 func handleConnection(commandPath string, configPath string, extensionName string, listenIn bool, conn net.Conn, stop chan bool, wg *sync.WaitGroup) error {
 	defer logs.Debug("connection exited", extensionName)
 
