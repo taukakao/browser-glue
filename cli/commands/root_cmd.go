@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"errors"
@@ -11,6 +11,11 @@ import (
 	"github.com/taukakao/browser-glue/lib/logs"
 	"github.com/taukakao/browser-glue/lib/settings"
 )
+
+func Execute(clientExecutable []byte) error {
+	clientExecutableData = clientExecutable
+	return rootCmd.Execute()
+}
 
 var rootCmd = &cobra.Command{
 	Use:   filepath.Base(os.Args[0]),

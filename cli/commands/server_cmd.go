@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"errors"
@@ -15,6 +15,8 @@ import (
 	"github.com/taukakao/browser-glue/lib/settings"
 	"github.com/taukakao/browser-glue/lib/util"
 )
+
+var clientExecutableData []byte
 
 var serverCmd = &cobra.Command{
 	Use:   "server",
@@ -92,7 +94,7 @@ func writeClientExecutable() error {
 		return err
 	}
 
-	_, err = file.Write(ClientExecutableData)
+	_, err = file.Write(clientExecutableData)
 	if err != nil {
 		err = fmt.Errorf("can't write client executable: %w", err)
 		logs.Error(err)
