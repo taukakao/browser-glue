@@ -76,7 +76,7 @@ func (config *NativeConfigFile) flatpakConfigPath() string {
 		panic("unsupported browser")
 	}
 	filename := filepath.Base(config.Path)
-	return filepath.Join(util.FindHomeDirPath(), ".var", "app", "org.mozilla.firefox", ".mozilla", "native-messaging-hosts", filename)
+	return filepath.Join(util.GetHomeDirPath(), ".var", "app", "org.mozilla.firefox", ".mozilla", "native-messaging-hosts", filename)
 }
 
 func (config *NativeConfigFile) flatpakFileExists() bool {
@@ -139,7 +139,7 @@ func CollectEnabledConfigFiles(browser settings.Browser) ([]NativeConfigFile, er
 }
 
 func CollectConfigFiles(browser settings.Browser) (configFiles []NativeConfigFile, err error) {
-	homePath := util.FindHomeDirPath()
+	homePath := util.GetHomeDirPath()
 
 	var hostFolderPath string
 	switch browser {
