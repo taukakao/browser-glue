@@ -13,11 +13,27 @@ import (
 	"github.com/taukakao/browser-glue/lib/util"
 )
 
+var ErrBrowserNotKnown = errors.New("this browser is not known")
+
 type Browser string
 
 const (
-	Firefox Browser = "firefox"
+	NoneBrowser Browser = ""
+	Firefox     Browser = "firefox"
 )
+
+func (browser *Browser) GetFlatpakId() (string, error) {
+	switch *browser {
+	case Firefox:
+		return "org.mozilla.firefox", nil
+	default:
+		return "", ErrBrowserNotKnown
+	}
+}
+
+func GetAllBrowsers() []Browser {
+	return []Browser{Firefox}
+}
 
 func SubscribeToChanges(subscription chan struct{}) {
 	if subscription == nil {

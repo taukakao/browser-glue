@@ -146,7 +146,7 @@ func CollectConfigFiles(browser settings.Browser) (configFiles []NativeConfigFil
 	case settings.Firefox:
 		hostFolderPath = filepath.Join(homePath, ".mozilla", "native-messaging-hosts")
 	default:
-		err = fmt.Errorf("unsupported Browser")
+		err = settings.ErrBrowserNotKnown
 		return
 	}
 

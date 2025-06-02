@@ -44,7 +44,7 @@ var extensionsSelectCmd = &cobra.Command{
 }
 
 func listExtensions(browser settings.Browser) int {
-	if browser == "" {
+	if browser == settings.NoneBrowser {
 		browserNew, exitCode := askForBrowser()
 		if exitCode != 0 {
 			return exitCode
@@ -75,7 +75,7 @@ func listExtensions(browser settings.Browser) int {
 }
 
 func selectExtensions(browser settings.Browser) int {
-	if browser == "" {
+	if browser == settings.NoneBrowser {
 		browserNew, exitCode := askForBrowser()
 		if exitCode != 0 {
 			return exitCode
