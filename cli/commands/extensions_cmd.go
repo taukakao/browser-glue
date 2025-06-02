@@ -108,6 +108,9 @@ func selectExtensions(browser settings.Browser) int {
 
 	finalErrCode := 0
 
+	enableConfigs := []config.NativeConfigFile{}
+	disableConfigs := []config.NativeConfigFile{}
+
 	for _, config := range configFiles {
 		enable := slices.Contains(selectedConfigs, config.Name())
 		if enable == config.IsEnabled() {
@@ -115,26 +118,34 @@ func selectExtensions(browser settings.Browser) int {
 		}
 
 		if enable {
-			err = config.Enable()
-
-			if err != nil {
-				pterm.Error.Println("Failed to enable extension", config.Name(), ":", err)
-				finalErrCode = 1
-				continue
-			}
-
-			pterm.Info.Println("Extension", config.Name(), "enabaled")
+			enableConfigs = append(enableConfigs, config)
 		} else {
-			err = config.Disable()
-
-			if err != nil {
-				pterm.Error.Println("Failed to disable extension", config.Name(), ":", err)
-				finalErrCode = 1
-				continue
-			}
-
-			pterm.Info.Println("Extension", config.Name(), "disabled")
+			disableConfigs = append(disableConfigs, config)
 		}
+
+	}
+
+	for _, config := range enableConfigs {
+		err = config.Enable()
+
+		if err != nil {
+			pterm.Error.Println("Failed to enable extension", config.Name(), ":", err)
+			finalErrCode = 1
+			continue
+		}
+
+		pterm.Info.Println("Extension", config.Name(), "enabaled")
+	}
+	for _, config := range disableConfigs {
+		err = config.Disable()
+
+		if err != nil {
+			pterm.Error.Println("Failed to disable extension", config.Name(), ":", err)
+			finalErrCode = 1
+			continue
+		}
+
+		pterm.Info.Println("Extension", config.Name(), "disabled")
 	}
 
 	pterm.Info.Println("Server will be reloaded automatically if it's running")
