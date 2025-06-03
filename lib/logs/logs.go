@@ -2,35 +2,50 @@ package logs
 
 import (
 	"fmt"
-	"log"
-	"os"
 
 	"github.com/pterm/pterm"
 )
 
-func init() {
-	pterm.DefaultLogger.Level = pterm.LogLevelTrace
-}
+type LogLevel int
 
-var InfoLogger = log.New(os.Stderr, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile|log.Lmsgprefix)
-var WarnLogger = log.New(os.Stderr, "WARNING: ", log.Ldate|log.Ltime|log.Lshortfile|log.Lmsgprefix)
-var ErrorLogger = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile|log.Lmsgprefix)
+const (
+	DebugLevel LogLevel = 2
+	InfoLevel  LogLevel = 3
+	WarnLevel  LogLevel = 4
+	ErrorLevel LogLevel = 5
+)
+
+var logger *pterm.Logger
 
 func Debug(v ...any) {
-	pterm.DefaultLogger.Debug(fmt.Sprintln(v...))
+	logger.Debug(fmt.Sprintln(v...))
 }
 
 func Info(v ...any) {
-	// InfoLogger.Println(v...)
-	pterm.DefaultLogger.Info(fmt.Sprintln(v...))
+	logger.Info(fmt.Sprintln(v...))
 }
 
 func Warn(v ...any) {
-	// WarnLogger.Println(v...)
-	pterm.DefaultLogger.WithCaller().WithCallerOffset(1).Warn(fmt.Sprintln(v...))
+	logger.WithCaller().WithCallerOffset(1).Warn(fmt.Sprintln(v...))
 }
 
 func Error(v ...any) {
-	// ErrorLogger.Println(v...)
-	pterm.DefaultLogger.WithCaller().WithCallerOffset(1).Error(fmt.Sprintln(v...))
+	logger.WithCaller().WithCallerOffset(1).Error(fmt.Sprintln(v...))
+}
+
+func SetLogLevel(level LogLevel) {
+	switch level {
+	case DebugLevel:
+		logger.Level = pterm.LogLevelDebug
+	case InfoLevel:
+		logger.Level = pterm.LogLevelInfo
+	case WarnLevel:
+		logger.Level = pterm.LogLevelWarn
+	case ErrorLevel:
+		logger.Level = pterm.LogLevelError
+	}
+}
+
+func init() {
+	logger = pterm.DefaultLogger.WithLevel(pterm.LogLevelTrace)
 }
