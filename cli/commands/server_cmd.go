@@ -1,20 +1,15 @@
 package commands
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
-	"github.com/taukakao/browser-glue/lib/logs"
 	"github.com/taukakao/browser-glue/lib/server"
 	"github.com/taukakao/browser-glue/lib/util"
 )
-
-var clientExecutableData []byte
 
 var serverCmd = &cobra.Command{
 	Use:   "server",
@@ -29,14 +24,6 @@ var serverCmd = &cobra.Command{
 }
 
 func startServer() int {
-	for _, browser := range util.GetAllBrowsers() {
-		var err error = writeClientExecutable(browser)
-		if err != nil {
-			pterm.Error.Println("Could not write client executable:", err)
-			return 1
-		}
-	}
-
 	allServersExited := make(chan struct{})
 	server.RunEnabledServersBackground(util.AllBrowsers, *listenIn, allServersExited)
 
@@ -68,45 +55,6 @@ func startServer() int {
 
 	server.StopServers()
 	return 0
-}
-
-func writeClientExecutable(browser util.Browser) error {
-	var err error
-
-	clientExecutablePath := browser.GetClientPath()
-
-	err = os.MkdirAll(filepath.Dir(clientExecutablePath), 0o755)
-	if err != nil {
-		err = fmt.Errorf("can't create directory for client executable: %w", err)
-		logs.Error(err)
-		return err
-	}
-
-	file, err := os.Create(clientExecutablePath)
-	if err != nil {
-		err = fmt.Errorf("can't create client executable file: %w", err)
-		logs.Error(err)
-		return err
-	}
-	defer file.Close()
-
-	err = file.Chmod(0o755)
-	if err != nil {
-		err = fmt.Errorf("can't change permissions for client executable file: %w", err)
-		logs.Error(err)
-		return err
-	}
-
-	_, err = file.Write(clientExecutableData)
-	if err != nil {
-		err = fmt.Errorf("can't write client executable: %w", err)
-		logs.Error(err)
-		return err
-	}
-
-	logs.Info("client executable created in:", clientExecutablePath)
-
-	return nil
 }
 
 var listenIn *bool

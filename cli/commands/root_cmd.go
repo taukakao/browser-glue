@@ -13,8 +13,7 @@ import (
 	"github.com/taukakao/browser-glue/lib/util"
 )
 
-func Execute(clientExecutable []byte) error {
-	clientExecutableData = clientExecutable
+func Execute() error {
 	return rootCmd.Execute()
 }
 

@@ -50,6 +50,7 @@ func (serv *Server) run() error {
 	defer logs.Debug("server exited", serv.ExtensionName)
 
 	browser := serv.ConfigFile.GetBrowser()
+	writeClientExecutable(browser.GetClientPath())
 
 	socketDir := browser.GetFlatpakRuntimeAppFolder()
 	socketFileName := util.GenerateSocketFileName(serv.ExtensionName)
