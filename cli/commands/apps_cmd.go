@@ -10,7 +10,6 @@ import (
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/taukakao/browser-glue/lib/config"
-	"github.com/taukakao/browser-glue/lib/logs"
 	"github.com/taukakao/browser-glue/lib/util"
 )
 
@@ -103,7 +102,7 @@ func selectApps(browser util.Browser) int {
 		Show()
 
 	if err != nil {
-		logs.Error(err)
+		pterm.Error.Println(err)
 		return 1
 	}
 
