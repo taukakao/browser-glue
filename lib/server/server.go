@@ -11,7 +11,6 @@ import (
 	"github.com/taukakao/browser-glue/lib/config"
 	"github.com/taukakao/browser-glue/lib/flatpak"
 	"github.com/taukakao/browser-glue/lib/logs"
-	"github.com/taukakao/browser-glue/lib/settings"
 	"github.com/taukakao/browser-glue/lib/util"
 )
 
@@ -51,12 +50,13 @@ func (serv *Server) run() error {
 
 	defer logs.Debug("server exited", serv.ExtensionName)
 
-	checkAndFixPermissionsQueue <- serv.ConfigFile.GetBrowser()
+	browser := serv.ConfigFile.GetBrowser()
 
-	socketPath := util.GenerateSocketPath(util.GetClientExecutableDir(), serv.ExtensionName)
+	checkAndFixPermissionsQueue <- browser
+
+	socketPath := util.GenerateSocketPath(browser.GetFlatpakId(), serv.ExtensionName)
 
 	os.MkdirAll(filepath.Dir(socketPath), 0o775)
-	os.Remove(socketPath)
 	listener, err := net.Listen("unix", socketPath)
 
 	if err != nil {
@@ -116,7 +116,7 @@ func (serv *Server) run() error {
 	}
 }
 
-var checkAndFixPermissionsQueue chan settings.Browser = make(chan settings.Browser, 10)
+var checkAndFixPermissionsQueue chan util.Browser = make(chan util.Browser, 10)
 
 func permissionRoutine() {
 	for browser := range checkAndFixPermissionsQueue {

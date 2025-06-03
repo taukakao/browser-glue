@@ -13,29 +13,6 @@ import (
 	"github.com/taukakao/browser-glue/lib/util"
 )
 
-var ErrBrowserNotKnown = errors.New("this browser is not known")
-
-type Browser string
-
-const (
-	NoneBrowser Browser = ""
-	AllBrowsers Browser = "all"
-	Firefox     Browser = "firefox"
-)
-
-func (browser *Browser) GetFlatpakId() (string, error) {
-	switch *browser {
-	case Firefox:
-		return "org.mozilla.firefox", nil
-	default:
-		return "", ErrBrowserNotKnown
-	}
-}
-
-func GetAllBrowsers() []Browser {
-	return []Browser{Firefox}
-}
-
 func SubscribeToChanges(subscription chan struct{}) {
 	if subscription == nil {
 		return
@@ -43,14 +20,14 @@ func SubscribeToChanges(subscription chan struct{}) {
 	subscribers = append(subscribers, subscription)
 }
 
-func EnabledNativeConfigFiles(browser Browser) []string {
+func EnabledNativeConfigFiles(browser util.Browser) []string {
 	viperMutex.Lock()
 	defer viperMutex.Unlock()
 
 	return viper.GetStringSlice(string(browser) + ".enabledConfigs")
 }
 
-func SetNativeConfigFileEnabled(browser Browser, nativeConfigFilePath string, enable bool) error {
+func SetNativeConfigFileEnabled(browser util.Browser, nativeConfigFilePath string, enable bool) error {
 	viperMutex.Lock()
 	defer viperMutex.Unlock()
 

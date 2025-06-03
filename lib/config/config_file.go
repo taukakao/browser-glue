@@ -14,14 +14,14 @@ import (
 type NativeConfigFile struct {
 	Path    string
 	Content NativeMessagingConfig
-	browser settings.Browser
+	browser util.Browser
 }
 
 func (config *NativeConfigFile) Name() string {
 	return filepath.Base(config.Path)
 }
 
-func (config *NativeConfigFile) GetBrowser() settings.Browser {
+func (config *NativeConfigFile) GetBrowser() util.Browser {
 	return config.browser
 }
 
@@ -79,8 +79,8 @@ func (config *NativeConfigFile) flatpakConfigPath() string {
 	filename := filepath.Base(config.Path)
 
 	switch config.browser {
-	case settings.Firefox:
-		return filepath.Join(util.GetHomeDirPath(), ".var", "app", "org.mozilla.firefox", ".mozilla", "native-messaging-hosts", filename)
+	case util.Firefox:
+		return filepath.Join(util.GetHomeDirPath(), ".var", "app", config.browser.GetFlatpakId(), ".mozilla", "native-messaging-hosts", filename)
 	default:
 		panic("unsupported browser")
 	}
@@ -128,7 +128,7 @@ func (config *NativeConfigFile) deleteConfigInFlatpakDir() error {
 	return nil
 }
 
-func CollectEnabledConfigFiles(browser settings.Browser) ([]NativeConfigFile, error) {
+func CollectEnabledConfigFiles(browser util.Browser) ([]NativeConfigFile, error) {
 	configFiles, err := CollectConfigFiles(browser)
 	if err != nil {
 		return configFiles, err
@@ -145,9 +145,9 @@ func CollectEnabledConfigFiles(browser settings.Browser) ([]NativeConfigFile, er
 	return filteredConfigFiles, nil
 }
 
-func CollectConfigFiles(browser settings.Browser) (configFiles []NativeConfigFile, err error) {
-	if browser == settings.AllBrowsers {
-		for _, browser := range settings.GetAllBrowsers() {
+func CollectConfigFiles(browser util.Browser) (configFiles []NativeConfigFile, err error) {
+	if browser == util.AllBrowsers {
+		for _, browser := range util.GetAllBrowsers() {
 			newFiles, err := CollectConfigFiles(browser)
 			if err != nil {
 				return configFiles, err
@@ -161,10 +161,10 @@ func CollectConfigFiles(browser settings.Browser) (configFiles []NativeConfigFil
 
 	var hostFolderPath string
 	switch browser {
-	case settings.Firefox:
+	case util.Firefox:
 		hostFolderPath = filepath.Join(homePath, ".mozilla", "native-messaging-hosts")
 	default:
-		err = settings.ErrBrowserNotKnown
+		err = util.ErrBrowserNotKnown
 		return
 	}
 

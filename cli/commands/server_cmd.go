@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/taukakao/browser-glue/lib/logs"
 	"github.com/taukakao/browser-glue/lib/server"
-	"github.com/taukakao/browser-glue/lib/settings"
 	"github.com/taukakao/browser-glue/lib/util"
 )
 
@@ -37,7 +36,7 @@ func startServer() int {
 	}
 
 	allServersExited := make(chan struct{})
-	server.RunEnabledServersBackground(settings.AllBrowsers, *listenIn, allServersExited)
+	server.RunEnabledServersBackground(util.AllBrowsers, *listenIn, allServersExited)
 
 	// if errors.Is(err, server.ErrNoConfigFiles) {
 	// 	pterm.Error.Println("You have not enabled any configs yet.")

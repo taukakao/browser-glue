@@ -10,7 +10,7 @@ import (
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/taukakao/browser-glue/lib/logs"
-	"github.com/taukakao/browser-glue/lib/settings"
+	"github.com/taukakao/browser-glue/lib/util"
 )
 
 func Execute(clientExecutable []byte) error {
@@ -24,9 +24,9 @@ var rootCmd = &cobra.Command{
 	Long:  `Browser Glue is an application that allows users to connect their browser extensions to locally running applications.`,
 }
 
-func askForBrowser() (settings.Browser, int) {
+func askForBrowser() (util.Browser, int) {
 	options := []string{}
-	allBrowsers := settings.GetAllBrowsers()
+	allBrowsers := util.GetAllBrowsers()
 	for _, browser := range allBrowsers {
 		options = append(options, string(browser))
 	}
@@ -48,12 +48,12 @@ func askForBrowser() (settings.Browser, int) {
 }
 
 type BrowserValue struct {
-	Browser settings.Browser
+	Browser util.Browser
 }
 
 func (bv *BrowserValue) String() string {
 	switch bv.Browser {
-	case settings.Firefox:
+	case util.Firefox:
 		return "firefox"
 	default:
 		return ""
@@ -64,7 +64,7 @@ func (bv *BrowserValue) Set(input string) error {
 	input = strings.ToLower(input)
 	switch input {
 	case "firefox":
-		bv.Browser = settings.Firefox
+		bv.Browser = util.Firefox
 	default:
 		return errors.New("unsupported browser, supported browsers are: firefox")
 	}

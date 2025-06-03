@@ -8,17 +8,13 @@ import (
 	"strings"
 
 	"github.com/taukakao/browser-glue/lib/logs"
-	"github.com/taukakao/browser-glue/lib/settings"
 	"github.com/taukakao/browser-glue/lib/util"
 )
 
-func CheckBrowserPermissions(browser settings.Browser) (bool, error) {
+func CheckBrowserPermissions(browser util.Browser) (bool, error) {
 	var err error
 
-	browserId, err := browser.GetFlatpakId()
-	if err != nil {
-		return false, fmt.Errorf("can not check the browser flatpak permissions: %w", err)
-	}
+	browserId := browser.GetFlatpakId()
 
 	cmd := exec.Command("flatpak", "--user", "override", "--show", browserId)
 
@@ -57,13 +53,8 @@ func CheckBrowserPermissions(browser settings.Browser) (bool, error) {
 	return false, nil
 }
 
-func FixBrowserPermissions(browser settings.Browser) error {
-	browserId, err := browser.GetFlatpakId()
-	if err != nil {
-		err = fmt.Errorf("can not find flatpak id: %w", err)
-		logs.Error(err)
-		return err
-	}
+func FixBrowserPermissions(browser util.Browser) error {
+	browserId := browser.GetFlatpakId()
 
 	logs.Info("setting browser permissions for", browserId)
 

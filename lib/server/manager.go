@@ -8,9 +8,10 @@ import (
 	"github.com/taukakao/browser-glue/lib/config"
 	"github.com/taukakao/browser-glue/lib/logs"
 	"github.com/taukakao/browser-glue/lib/settings"
+	"github.com/taukakao/browser-glue/lib/util"
 )
 
-func RunEnabledServersBackground(browser settings.Browser, listenIn bool, allServersExited chan<- struct{}) {
+func RunEnabledServersBackground(browser util.Browser, listenIn bool, allServersExited chan<- struct{}) {
 	if allServersExited != nil {
 		allExitedSignal.subscribe(allServersExited)
 	}
@@ -46,7 +47,7 @@ func StopServers() {
 	logs.Debug("all servers exited")
 }
 
-func refreshEnabledServers(browser settings.Browser, listenIn bool) error {
+func refreshEnabledServers(browser util.Browser, listenIn bool) error {
 	enabledNativeConfigs, err := config.CollectEnabledConfigFiles(browser)
 	if err != nil {
 		err = fmt.Errorf("can't collect config files: %w", err)

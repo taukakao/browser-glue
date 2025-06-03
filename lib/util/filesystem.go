@@ -1,19 +1,46 @@
 package util
 
+// don't use any packages from this repo or otherwise not in the stdlib
+// this gets included in the client so it needs to be as small as possible
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"os"
 	"os/user"
 	"path/filepath"
-
-	"github.com/taukakao/browser-glue/lib/logs"
 )
 
-func GenerateSocketPath(socketDir string, extensionName string) string {
+var ErrBrowserNotKnown = errors.New("this browser is not known")
+
+type Browser string
+
+const (
+	NoneBrowser Browser = ""
+	AllBrowsers Browser = "all"
+	Firefox     Browser = "firefox"
+)
+
+func (browser *Browser) GetFlatpakId() string {
+	switch *browser {
+	case Firefox:
+		return "org.mozilla.firefox"
+	default:
+		panic(ErrBrowserNotKnown)
+	}
+}
+
+func GetAllBrowsers() []Browser {
+	return []Browser{Firefox}
+}
+
+func GenerateSocketPath(browserId string, extensionName string) string {
 	socketNameEncoded := socketEncoding.EncodeToString([]byte(extensionName))
 	socketFileName := fmt.Sprintf("%s.socket", socketNameEncoded)
-	return filepath.Join(socketDir, socketFileName)
+
+	newSocketDir := filepath.Join(runtimeDir, "app", browserId, shortAppId)
+
+	return filepath.Join(newSocketDir, socketFileName)
 }
 
 func GetHomeDirPath() string {
@@ -48,7 +75,6 @@ func findHomeDirPath() string {
 		if err != nil || currentUser.Username == "" {
 			// If this happens then something is very wrong with the system
 			err = fmt.Errorf("could not find the home dir: %w", err)
-			logs.Error(err)
 			panic(err)
 		}
 		homeDir = filepath.Join("/", "home", currentUser.Username)
@@ -74,8 +100,22 @@ func findUserConfigDir() string {
 	return configDir
 }
 
+func findRuntimeDir() string {
+	runtimeDir, ok := os.LookupEnv("XDG_RUNTIME_DIR")
+	if !ok {
+		user, err := user.Current()
+		if err != nil {
+			err = fmt.Errorf("could not find the runtime dir: %w", err)
+			panic(err)
+		}
+		runtimeDir = filepath.Join("/", "run", "user", user.Uid)
+	}
+	return runtimeDir
+}
+
 var shortAppId = "browser-glue"
 var homeDir string = findHomeDirPath()
+var runtimeDir string = findRuntimeDir()
 var customUserDataDir string = filepath.Join(findUserDataDirPath(), shortAppId)
 var customUserConfigDir string = filepath.Join(findUserConfigDir(), shortAppId)
 var clientExecutableDir string = filepath.Join(customUserDataDir, "client")

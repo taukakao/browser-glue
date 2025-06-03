@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/taukakao/browser-glue/lib/config"
 	"github.com/taukakao/browser-glue/lib/logs"
-	"github.com/taukakao/browser-glue/lib/settings"
+	"github.com/taukakao/browser-glue/lib/util"
 )
 
 var appsCmd = &cobra.Command{
@@ -44,8 +44,8 @@ var appsSelectCmd = &cobra.Command{
 	},
 }
 
-func listApps(browser settings.Browser) int {
-	if browser == settings.NoneBrowser {
+func listApps(browser util.Browser) int {
+	if browser == util.NoneBrowser {
 		browserNew, exitCode := askForBrowser()
 		if exitCode != 0 {
 			return exitCode
@@ -75,8 +75,8 @@ func listApps(browser settings.Browser) int {
 	return 0
 }
 
-func selectApps(browser settings.Browser) int {
-	if browser == settings.NoneBrowser {
+func selectApps(browser util.Browser) int {
+	if browser == util.NoneBrowser {
 		browserNew, exitCode := askForBrowser()
 		if exitCode != 0 {
 			return exitCode
@@ -154,7 +154,7 @@ func selectApps(browser settings.Browser) int {
 	return finalErrCode
 }
 
-func collectConfigFiles(browser settings.Browser) ([]config.NativeConfigFile, []string, []string, int) {
+func collectConfigFiles(browser util.Browser) ([]config.NativeConfigFile, []string, []string, int) {
 	configFiles, err := config.CollectConfigFiles(browser)
 	if err != nil {
 		err = fmt.Errorf("problem while looking for app configuration files: %w", err)
