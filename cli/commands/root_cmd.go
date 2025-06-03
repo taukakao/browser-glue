@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/pterm/pterm"
@@ -24,7 +25,11 @@ var rootCmd = &cobra.Command{
 }
 
 func askForBrowser() (settings.Browser, int) {
-	options := []string{"firefox"}
+	options := []string{}
+	allBrowsers := settings.GetAllBrowsers()
+	for _, browser := range allBrowsers {
+		options = append(options, string(browser))
+	}
 	selected, err := pterm.DefaultInteractiveSelect.
 		WithOptions(options).
 		Show()
@@ -34,12 +39,12 @@ func askForBrowser() (settings.Browser, int) {
 		return "", 1
 	}
 
-	switch selected {
-	case "firefox":
-		return settings.Firefox, 0
-	default:
+	selectedIndex := slices.Index(options, selected)
+	if selectedIndex == -1 {
 		return "", 1
 	}
+
+	return allBrowsers[selectedIndex], 0
 }
 
 type BrowserValue struct {

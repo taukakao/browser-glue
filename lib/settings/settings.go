@@ -19,6 +19,7 @@ type Browser string
 
 const (
 	NoneBrowser Browser = ""
+	AllBrowsers Browser = "all"
 	Firefox     Browser = "firefox"
 )
 

@@ -36,7 +36,7 @@ func startServer() int {
 		return 1
 	}
 
-	server.RunEnabledServersBackground(settings.Firefox, *listenIn, nil)
+	server.RunEnabledServersBackground(settings.AllBrowsers, *listenIn, nil)
 
 	// if errors.Is(err, server.ErrNoConfigFiles) {
 	// 	pterm.Error.Println("You have not enabled any configs yet.")
