@@ -2,6 +2,7 @@ package commands
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -51,22 +52,18 @@ type BrowserValue struct {
 }
 
 func (bv *BrowserValue) String() string {
-	switch bv.Browser {
-	case util.Firefox:
-		return "firefox"
-	default:
-		return ""
-	}
+	return string(bv.Browser)
 }
 
 func (bv *BrowserValue) Set(input string) error {
 	input = strings.ToLower(input)
-	switch input {
-	case "firefox":
-		bv.Browser = util.Firefox
-	default:
-		return errors.New("unsupported browser, supported browsers are: firefox")
+	browser := util.Browser(input)
+	allBrowsers := util.GetAllBrowsers()
+	if !slices.Contains(allBrowsers, browser) {
+		return errors.New("unsupported browser, supported browsers are: " + fmt.Sprint(allBrowsers))
 	}
+
+	bv.Browser = browser
 	return nil
 }
 
