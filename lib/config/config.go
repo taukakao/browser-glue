@@ -53,19 +53,19 @@ func (config *NativeMessagingConfig) WriteFile(path string) error {
 
 	data, err := json.MarshalIndent(*config, "", "    ")
 	if err != nil {
-		err = fmt.Errorf("Creating the new config file failed: %w", err)
+		err = fmt.Errorf("creating the new config file failed: %w", err)
 		logs.Error(err)
 		return err
 	}
 	err = os.WriteFile(pathNew, data, 0o644)
 	if err != nil {
-		err = fmt.Errorf("Writing the config file to %s failed: %w", pathNew, err)
+		err = fmt.Errorf("writing the config file to %s failed: %w", pathNew, err)
 		logs.Error(err)
 		return err
 	}
 	err = os.Rename(pathNew, path)
 	if err != nil {
-		err = fmt.Errorf("Moving the temporary file %s into position at %s failed: %w", pathNew, path, err)
+		err = fmt.Errorf("moving the temporary file %s into position at %s failed: %w", pathNew, path, err)
 		logs.Error(err)
 		return err
 	}

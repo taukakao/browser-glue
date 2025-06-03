@@ -30,9 +30,7 @@ var serverCmd = &cobra.Command{
 }
 
 func startServer() int {
-	var err error
-
-	err = writeClientExecutable()
+	var err error = writeClientExecutable()
 	if err != nil {
 		pterm.Error.Println("Could not write client executable:", err)
 		return 1

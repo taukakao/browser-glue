@@ -34,20 +34,20 @@ func handleConnection(commandPath string, configPath string, extensionName strin
 	cmd.Dir = filepath.Dir(commandPath)
 
 	stdin, err := cmd.StdinPipe()
-	defer stdin.Close()
 	if err != nil {
 		err = fmt.Errorf("could not open the Stdin pipe for %s: %w", extensionName, err)
 		logs.Error(err)
 		return err
 	}
+	defer stdin.Close()
 
 	stdout, err := cmd.StdoutPipe()
-	defer stdout.Close()
 	if err != nil {
 		err = fmt.Errorf("could not open the Stdout pipe for %s: %w", extensionName, err)
 		logs.Error(err)
 		return err
 	}
+	defer stdout.Close()
 
 	err = cmd.Start()
 	if err != nil {
@@ -98,8 +98,6 @@ type sniffer struct {
 	remaining     uint32
 	message       []byte
 }
-
-const kilobyte = 1000
 
 func (s *sniffer) Write(p []byte) (retlen int, reterr error) {
 	retlen = len(p)
