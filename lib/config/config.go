@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,11 +12,13 @@ import (
 	"github.com/taukakao/browser-glue/lib/util"
 )
 
-type ConfigNotSupportedError struct {
+var ErrNoExtensions error = errors.New("config does not list any extensions")
+
+type ErrUnsupportedConfigType struct {
 	config *NativeMessagingConfig
 }
 
-func (notSupportErr *ConfigNotSupportedError) Error() string {
+func (notSupportErr *ErrUnsupportedConfigType) Error() string {
 	return fmt.Sprintf("%s has unsupported type %s", notSupportErr.config.Executable, notSupportErr.config.Type)
 }
 
@@ -24,7 +27,16 @@ type NativeMessagingConfig struct {
 	Description       string   `json:"description"`
 	Executable        string   `json:"path"`
 	Type              string   `json:"type"`
-	AllowedExtensions []string `json:"allowed_extensions"`
+	AllowedExtensions []string `json:"allowed_extensions,omitempty"`
+	AllowedOrigins    []string `json:"allowed_origins,omitempty"`
+}
+
+func (config *NativeMessagingConfig) GetExtensions() []string {
+	if len(config.AllowedExtensions) > len(config.AllowedOrigins) {
+		return config.AllowedExtensions
+	} else {
+		return config.AllowedOrigins
+	}
 }
 
 func (config *NativeMessagingConfig) ParseFile(path string) error {
@@ -41,7 +53,10 @@ func (config *NativeMessagingConfig) ParseFile(path string) error {
 		config.Executable = filepath.Join(filepath.Dir(path), config.Executable)
 	}
 	if config.Type != "stdio" {
-		return &ConfigNotSupportedError{config}
+		return &ErrUnsupportedConfigType{config}
+	}
+	if len(config.AllowedExtensions) == 0 && len(config.AllowedOrigins) == 0 {
+		return ErrNoExtensions
 	}
 	return nil
 }
@@ -57,6 +72,12 @@ func (config *NativeMessagingConfig) WriteFile(path string) error {
 		logs.Error(err)
 		return err
 	}
+
+	err = os.MkdirAll(filepath.Dir(path), 0o755)
+	if err != nil {
+		logs.Warn("could not create native messaging config folder", err)
+	}
+
 	err = os.WriteFile(pathNew, data, 0o644)
 	if err != nil {
 		err = fmt.Errorf("writing the config file to %s failed: %w", pathNew, err)
@@ -78,8 +99,11 @@ func (config *NativeMessagingConfig) IsIdentical(configComp *NativeMessagingConf
 
 func (config NativeMessagingConfig) CreateCopy() *NativeMessagingConfig {
 	allowedExtensions := make([]string, len(config.AllowedExtensions))
+	allowedOrigins := make([]string, len(config.AllowedOrigins))
 	copy(allowedExtensions, config.AllowedExtensions)
+	copy(allowedOrigins, config.AllowedOrigins)
 	config.AllowedExtensions = allowedExtensions
+	config.AllowedOrigins = allowedOrigins
 	return &config
 }
 

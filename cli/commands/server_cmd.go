@@ -24,8 +24,13 @@ var serverCmd = &cobra.Command{
 }
 
 func startServer() int {
+	browser := util.AllBrowsers
+	if selectedBrowserFlag.Browser != util.NoneBrowser {
+		browser = selectedBrowserFlag.Browser
+	}
+
 	allServersExited := make(chan struct{})
-	server.RunEnabledServersBackground(util.AllBrowsers, *listenIn, allServersExited)
+	server.RunEnabledServersBackground(browser, *listenIn, allServersExited)
 
 	// if errors.Is(err, server.ErrNoConfigFiles) {
 	// 	pterm.Error.Println("You have not enabled any configs yet.")

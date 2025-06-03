@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -81,6 +82,10 @@ func (config *NativeConfigFile) flatpakConfigPath() string {
 	switch config.browser {
 	case util.Firefox:
 		return filepath.Join(util.GetHomeDirPath(), ".var", "app", config.browser.GetFlatpakId(), ".mozilla", "native-messaging-hosts", filename)
+	case util.Floorp:
+		return filepath.Join(util.GetHomeDirPath(), ".var", "app", config.browser.GetFlatpakId(), ".mozilla", "native-messaging-hosts", filename)
+	case util.Chromium:
+		return filepath.Join(util.GetHomeDirPath(), ".var", "app", config.browser.GetFlatpakId(), "config", "chromium", "NativeMessagingHosts", filename)
 	default:
 		panic("unsupported browser")
 	}
@@ -163,10 +168,16 @@ func CollectConfigFiles(browser util.Browser) (configFiles []NativeConfigFile, e
 	switch browser {
 	case util.Firefox:
 		hostFolderPath = filepath.Join(homePath, ".mozilla", "native-messaging-hosts")
+	case util.Floorp:
+		hostFolderPath = filepath.Join(homePath, ".mozilla", "native-messaging-hosts")
+	case util.Chromium:
+		hostFolderPath = filepath.Join(homePath, ".config", "chromium", "NativeMessagingHosts")
 	default:
 		err = util.ErrBrowserNotKnown
 		return
 	}
+
+	os.MkdirAll(hostFolderPath, 0o755)
 
 	hostConfigFiles, err := collectConfigFilePathsInFolder(hostFolderPath)
 	if err != nil {
@@ -181,7 +192,7 @@ func CollectConfigFiles(browser util.Browser) (configFiles []NativeConfigFile, e
 		if err != nil {
 			err = fmt.Errorf("failed to parse config file %s: %w", hostConfigFile, err)
 			logs.Error(err)
-			return
+			continue
 		}
 		configFiles = append(configFiles, NativeConfigFile{Path: hostConfigFile, Content: decoded, browser: browser})
 	}
@@ -192,6 +203,9 @@ func CollectConfigFiles(browser util.Browser) (configFiles []NativeConfigFile, e
 func collectConfigFilePathsInFolder(folderPath string) ([]string, error) {
 	var configFiles []string
 	files, err := os.ReadDir(folderPath)
+	if errors.Is(err, os.ErrNotExist) {
+		return configFiles, nil
+	}
 	if err != nil {
 		err = fmt.Errorf("Error reading directory %s: %w", folderPath, err)
 		logs.Error(err)

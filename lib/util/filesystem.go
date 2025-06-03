@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 )
 
 var ErrBrowserNotKnown = errors.New("this browser is not known")
@@ -19,12 +20,18 @@ const (
 	NoneBrowser Browser = ""
 	AllBrowsers Browser = "all"
 	Firefox     Browser = "firefox"
+	Floorp      Browser = "floorp"
+	Chromium    Browser = "chromium"
 )
 
 func (browser *Browser) GetFlatpakId() string {
 	switch *browser {
 	case Firefox:
 		return "org.mozilla.firefox"
+	case Floorp:
+		return "one.ablaze.floorp"
+	case Chromium:
+		return "org.chromium.Chromium"
 	default:
 		panic(ErrBrowserNotKnown)
 	}
@@ -39,14 +46,18 @@ func (browser *Browser) GetClientPath() string {
 }
 
 func GetAllBrowsers() []Browser {
-	return []Browser{Firefox}
+	return []Browser{Firefox, Floorp, Chromium}
 }
 
 func GenerateSocketFileName(extensionName string) string {
+	extensionName = strings.TrimPrefix(extensionName, "chrome-extension://")
 	socketNameEncoded := socketEncoding.EncodeToString([]byte(extensionName))
-	socketFileName := fmt.Sprintf("%s.socket", socketNameEncoded)
 
-	return socketFileName
+	if len(socketNameEncoded) >= 50 {
+		socketNameEncoded = socketNameEncoded[:50]
+	}
+
+	return socketNameEncoded
 }
 
 func GetHomeDirPath() string {

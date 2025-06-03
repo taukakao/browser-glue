@@ -12,9 +12,10 @@ import (
 
 	"github.com/pterm/pterm"
 	"github.com/taukakao/browser-glue/lib/logs"
+	"github.com/taukakao/browser-glue/lib/util"
 )
 
-func handleConnection(commandPath string, configPath string, extensionName string, listenIn bool, conn net.Conn, stop chan bool, wg *sync.WaitGroup) error {
+func handleConnection(commandPath string, configPath string, extensionName string, browser util.Browser, listenIn bool, conn net.Conn, stop chan bool, wg *sync.WaitGroup) error {
 	defer logs.Debug("connection exited", extensionName)
 
 	wg.Add(1)
@@ -28,7 +29,13 @@ func handleConnection(commandPath string, configPath string, extensionName strin
 
 	logs.Info("new connection for", extensionName)
 
-	cmd := exec.Command(commandPath, configPath, extensionName)
+	var cmd *exec.Cmd
+	switch browser {
+	case util.Firefox, util.Floorp:
+		cmd = exec.Command(commandPath, configPath, extensionName)
+	case util.Chromium:
+		cmd = exec.Command(commandPath, extensionName)
+	}
 	defer cmd.Wait()
 
 	cmd.Dir = filepath.Dir(commandPath)

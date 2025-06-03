@@ -77,7 +77,7 @@ func refreshEnabledServers(browser util.Browser, listenIn bool) error {
 			}
 		}
 
-		for _, extensionName := range enabledConfig.Content.AllowedExtensions {
+		for _, extensionName := range enabledConfig.Content.GetExtensions() {
 
 			if slices.Contains(runningExtensions, extensionName) {
 				continue

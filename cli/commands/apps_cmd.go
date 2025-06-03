@@ -61,7 +61,7 @@ func listApps(browser util.Browser) int {
 	data := [][]string{{"App Config Name", "Enabled", "Supported Extensions"}}
 
 	for _, configFile := range configFiles {
-		newLine := []string{configFile.Name(), fmt.Sprint(configFile.IsEnabled()), strings.Join(configFile.Content.AllowedExtensions, " | ")}
+		newLine := []string{configFile.Name(), fmt.Sprint(configFile.IsEnabled()), strings.Join(configFile.Content.GetExtensions(), " | ")}
 		data = append(data, newLine)
 	}
 
@@ -158,7 +158,7 @@ func collectConfigFiles(browser util.Browser) ([]config.NativeConfigFile, []stri
 	configFiles, err := config.CollectConfigFiles(browser)
 	if err != nil {
 		err = fmt.Errorf("problem while looking for app configuration files: %w", err)
-		logs.Error(err)
+		pterm.Error.Println(err)
 		return configFiles, []string{}, []string{}, 1
 	}
 	if len(configFiles) == 0 {

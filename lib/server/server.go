@@ -87,7 +87,7 @@ func (serv *Server) run() error {
 		select {
 		case conn := <-connChan:
 			retries = 0
-			go handleConnection(serv.ConfigFile.Content.Executable, serv.ConfigFile.Path, serv.ExtensionName, serv.ListenIn, conn, stopConnectionSignal, &connectionWait)
+			go handleConnection(serv.ConfigFile.Content.Executable, serv.ConfigFile.Path, serv.ExtensionName, browser, serv.ListenIn, conn, stopConnectionSignal, &connectionWait)
 
 		case err := <-errChan:
 			if retries < 5 {
