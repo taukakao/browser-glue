@@ -22,7 +22,10 @@ const (
 	Firefox     Browser = "firefox"
 	Floorp      Browser = "floorp"
 	Chromium    Browser = "chromium"
+	Brave       Browser = "brave"
 )
+
+var allBrowsers = []Browser{Firefox, Floorp, Chromium, Brave}
 
 func (browser *Browser) GetFlatpakId() string {
 	switch *browser {
@@ -32,6 +35,8 @@ func (browser *Browser) GetFlatpakId() string {
 		return "one.ablaze.floorp"
 	case Chromium:
 		return "org.chromium.Chromium"
+	case Brave:
+		return "com.brave.Browser"
 	default:
 		panic(ErrBrowserNotKnown)
 	}
@@ -46,7 +51,7 @@ func (browser *Browser) GetClientPath() string {
 }
 
 func GetAllBrowsers() []Browser {
-	return []Browser{Firefox, Floorp, Chromium}
+	return allBrowsers
 }
 
 func GenerateSocketFileName(extensionName string) string {

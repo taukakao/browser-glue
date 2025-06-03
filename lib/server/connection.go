@@ -33,7 +33,7 @@ func handleConnection(commandPath string, configPath string, extensionName strin
 	switch browser {
 	case util.Firefox, util.Floorp:
 		cmd = exec.Command(commandPath, configPath, extensionName)
-	case util.Chromium:
+	case util.Chromium, util.Brave:
 		cmd = exec.Command(commandPath, extensionName)
 	}
 	defer cmd.Wait()

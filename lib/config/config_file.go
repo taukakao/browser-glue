@@ -86,6 +86,8 @@ func (config *NativeConfigFile) flatpakConfigPath() string {
 		return filepath.Join(util.GetHomeDirPath(), ".var", "app", config.browser.GetFlatpakId(), ".mozilla", "native-messaging-hosts", filename)
 	case util.Chromium:
 		return filepath.Join(util.GetHomeDirPath(), ".var", "app", config.browser.GetFlatpakId(), "config", "chromium", "NativeMessagingHosts", filename)
+	case util.Brave:
+		return filepath.Join(util.GetHomeDirPath(), ".var", "app", config.browser.GetFlatpakId(), "config", "BraveSoftware", "Brave-Browser", "NativeMessagingHosts", filename)
 	default:
 		panic("unsupported browser")
 	}
@@ -166,11 +168,9 @@ func CollectConfigFiles(browser util.Browser) (configFiles []NativeConfigFile, e
 
 	var hostFolderPath string
 	switch browser {
-	case util.Firefox:
+	case util.Firefox, util.Floorp:
 		hostFolderPath = filepath.Join(homePath, ".mozilla", "native-messaging-hosts")
-	case util.Floorp:
-		hostFolderPath = filepath.Join(homePath, ".mozilla", "native-messaging-hosts")
-	case util.Chromium:
+	case util.Chromium, util.Brave:
 		hostFolderPath = filepath.Join(homePath, ".config", "chromium", "NativeMessagingHosts")
 	default:
 		err = util.ErrBrowserNotKnown
