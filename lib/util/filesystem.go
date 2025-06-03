@@ -20,10 +20,6 @@ func GetHomeDirPath() string {
 	return homeDir
 }
 
-func GetCustomUserDataDir() string {
-	return customUserDataDir
-}
-
 func GetCustomUserConfigDir() string {
 	return customUserConfigDir
 }

@@ -16,10 +16,6 @@ var InfoLogger = log.New(os.Stderr, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile
 var WarnLogger = log.New(os.Stderr, "WARNING: ", log.Ldate|log.Ltime|log.Lshortfile|log.Lmsgprefix)
 var ErrorLogger = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile|log.Lmsgprefix)
 
-func Trace(v ...any) {
-	pterm.DefaultLogger.Trace(fmt.Sprintln(v...))
-}
-
 func Debug(v ...any) {
 	pterm.DefaultLogger.Debug(fmt.Sprintln(v...))
 }
@@ -37,8 +33,4 @@ func Warn(v ...any) {
 func Error(v ...any) {
 	// ErrorLogger.Println(v...)
 	pterm.DefaultLogger.WithCaller().WithCallerOffset(1).Error(fmt.Sprintln(v...))
-}
-
-func Fatal(v ...any) {
-	pterm.DefaultLogger.WithCaller().WithCallerOffset(1).Fatal(fmt.Sprintln(v...))
 }
