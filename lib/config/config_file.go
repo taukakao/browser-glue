@@ -177,7 +177,10 @@ func CollectConfigFiles(browser util.Browser) (configFiles []NativeConfigFile, e
 		return
 	}
 
-	os.MkdirAll(hostFolderPath, 0o755)
+	if _, err := os.Lstat(hostFolderPath); errors.Is(err, os.ErrNotExist) {
+		logs.Warn("Host folder created. Logging out and back in might be requred.")
+		os.MkdirAll(hostFolderPath, 0o755)
+	}
 
 	hostConfigFiles, err := collectConfigFilePathsInFolder(hostFolderPath)
 	if err != nil {
