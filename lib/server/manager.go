@@ -103,14 +103,12 @@ func (signal *allExitSignalSafe) subscribe(c chan<- struct{}) {
 }
 
 func (signal *allExitSignalSafe) broadcast() {
-	go func() {
-		signal.Lock()
-		defer signal.Unlock()
-		for _, receiver := range signal.receivers {
-			receiver <- struct{}{}
-		}
-		signal.receivers = [](chan<- struct{}){}
-	}()
+	signal.Lock()
+	defer signal.Unlock()
+	for _, receiver := range signal.receivers {
+		go func() { receiver <- struct{}{} }()
+	}
+	signal.receivers = [](chan<- struct{}){}
 }
 
 var allExitedSignal allExitSignalSafe

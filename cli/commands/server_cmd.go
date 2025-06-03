@@ -36,7 +36,8 @@ func startServer() int {
 		return 1
 	}
 
-	server.RunEnabledServersBackground(settings.AllBrowsers, *listenIn, nil)
+	allServersExited := make(chan struct{})
+	server.RunEnabledServersBackground(settings.AllBrowsers, *listenIn, allServersExited)
 
 	// if errors.Is(err, server.ErrNoConfigFiles) {
 	// 	pterm.Error.Println("You have not enabled any configs yet.")
@@ -51,7 +52,12 @@ func startServer() int {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	<-interrupt
+	select {
+	case <-allServersExited:
+		pterm.Error.Println("All servers exited!")
+		return 5
+	case <-interrupt:
+	}
 	pterm.Info.Println("cleaning up, press Ctrl+C again to force close")
 
 	go func() {
