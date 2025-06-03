@@ -116,5 +116,5 @@ func onSettingsFileChanged(e fsnotify.Event) {
 			// ignore this subscriber if not listening
 		}
 	}
-	logs.Info("config changed, reloading config")
+	logs.Debug("config changed, reloading config")
 }

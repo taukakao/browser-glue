@@ -34,7 +34,7 @@ func (config *NativeConfigFile) IsEnabled() bool {
 	enabled := slices.Contains(enabledConfigs, config.Name())
 
 	if enabled && !config.flatpakFileExists() {
-		logs.Info("flatpak config file for", config.Path, "is missing, creating it")
+		logs.Info("writing flatpak config file", config.Name())
 		err := config.writeConfigToFlatpakDir()
 		if err != nil {
 			err = fmt.Errorf("could not write config %s to flatpak directory: %w", config.Path, err)

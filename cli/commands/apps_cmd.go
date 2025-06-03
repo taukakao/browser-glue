@@ -135,7 +135,7 @@ func selectApps(browser settings.Browser) int {
 			continue
 		}
 
-		pterm.Info.Println("App", config.Name(), "enabaled")
+		pterm.Info.Println("App", config.Name(), "enabled.")
 	}
 	for _, config := range disableConfigs {
 		err = config.Disable()
@@ -146,10 +146,10 @@ func selectApps(browser settings.Browser) int {
 			continue
 		}
 
-		pterm.Info.Println("App", config.Name(), "disabled")
+		pterm.Info.Println("App", config.Name(), "disabled.")
 	}
 
-	pterm.Info.Println("Server will be reloaded automatically if it's running")
+	pterm.Info.Println("Server will be reloaded automatically if it's running.")
 
 	return finalErrCode
 }
@@ -162,7 +162,7 @@ func collectConfigFiles(browser settings.Browser) ([]config.NativeConfigFile, []
 		return configFiles, []string{}, []string{}, 1
 	}
 	if len(configFiles) == 0 {
-		pterm.Error.Println("Could not find any app configuration files")
+		pterm.Error.Println("Could not find any app configuration files.")
 		return configFiles, []string{}, []string{}, 1
 	}
 
