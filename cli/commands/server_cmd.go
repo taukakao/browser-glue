@@ -29,10 +29,12 @@ var serverCmd = &cobra.Command{
 }
 
 func startServer() int {
-	var err error = writeClientExecutable()
-	if err != nil {
-		pterm.Error.Println("Could not write client executable:", err)
-		return 1
+	for _, browser := range util.GetAllBrowsers() {
+		var err error = writeClientExecutable(browser)
+		if err != nil {
+			pterm.Error.Println("Could not write client executable:", err)
+			return 1
+		}
 	}
 
 	allServersExited := make(chan struct{})
@@ -68,10 +70,10 @@ func startServer() int {
 	return 0
 }
 
-func writeClientExecutable() error {
+func writeClientExecutable(browser util.Browser) error {
 	var err error
 
-	clientExecutablePath := util.GetClientExecutablePath()
+	clientExecutablePath := browser.GetClientPath()
 
 	err = os.MkdirAll(filepath.Dir(clientExecutablePath), 0o755)
 	if err != nil {

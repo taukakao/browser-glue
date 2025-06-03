@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 
 	"github.com/taukakao/browser-glue/lib/util"
 )
@@ -19,21 +20,24 @@ func main() {
 	isChrome := len(os.Args) == 2
 	isFirefox := len(os.Args) == 3
 
-	var browser util.Browser
-
 	var extensionName string
 	if isFirefox {
-		browser = util.Firefox
 		extensionName = os.Args[2]
 	} else if isChrome {
-		browser = util.NoneBrowser
 		extensionName = os.Args[1]
 	} else {
 		printSimpleError("unsupported browser")
 		os.Exit(1)
 	}
 
-	socketPath := util.GenerateSocketPath(browser.GetFlatpakId(), extensionName)
+	exePath, err := os.Executable()
+	if err != nil {
+		printSimpleError("can't determine path of executable:", err)
+	}
+
+	socketFileName := util.GenerateSocketFileName(extensionName)
+
+	socketPath := filepath.Join(filepath.Dir(exePath), socketFileName)
 
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {

@@ -102,7 +102,7 @@ func (config *NativeConfigFile) writeConfigToFlatpakDir() error {
 	}
 
 	flatpakConfig := config.Content.CreateCopy()
-	flatpakConfig.ConvertToCustomConfig()
+	flatpakConfig.ConvertToCustomConfig(config.browser)
 	err := flatpakConfig.WriteFile(flatpakPath)
 	if err != nil {
 		err = fmt.Errorf("could not create native config in flatpak folder: %w", err)

@@ -30,17 +30,23 @@ func (browser *Browser) GetFlatpakId() string {
 	}
 }
 
+func (browser *Browser) GetFlatpakRuntimeAppFolder() string {
+	return filepath.Join(runtimeDir, "app", browser.GetFlatpakId(), shortAppId)
+}
+
+func (browser *Browser) GetClientPath() string {
+	return filepath.Join(browser.GetFlatpakRuntimeAppFolder(), "client")
+}
+
 func GetAllBrowsers() []Browser {
 	return []Browser{Firefox}
 }
 
-func GenerateSocketPath(browserId string, extensionName string) string {
+func GenerateSocketFileName(extensionName string) string {
 	socketNameEncoded := socketEncoding.EncodeToString([]byte(extensionName))
 	socketFileName := fmt.Sprintf("%s.socket", socketNameEncoded)
 
-	newSocketDir := filepath.Join(runtimeDir, "app", browserId, shortAppId)
-
-	return filepath.Join(newSocketDir, socketFileName)
+	return socketFileName
 }
 
 func GetHomeDirPath() string {
@@ -51,16 +57,8 @@ func GetCustomUserConfigDir() string {
 	return customUserConfigDir
 }
 
-func GetClientExecutableDir() string {
-	return clientExecutableDir
-}
-
-func GetClientExecutablePath() string {
-	return clientExecutablePath
-}
-
 func MakePathHomeRelative(path string) string {
-	pathRel, err := filepath.Rel(homeDir, clientExecutableDir)
+	pathRel, err := filepath.Rel(homeDir, path)
 	if err != nil {
 		return path
 	}
@@ -118,6 +116,4 @@ var homeDir string = findHomeDirPath()
 var runtimeDir string = findRuntimeDir()
 var customUserDataDir string = filepath.Join(findUserDataDirPath(), shortAppId)
 var customUserConfigDir string = filepath.Join(findUserConfigDir(), shortAppId)
-var clientExecutableDir string = filepath.Join(customUserDataDir, "client")
-var clientExecutablePath string = filepath.Join(clientExecutableDir, "client")
 var socketEncoding = base64.NewEncoding("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-")

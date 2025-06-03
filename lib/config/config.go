@@ -83,6 +83,6 @@ func (config NativeMessagingConfig) CreateCopy() *NativeMessagingConfig {
 	return &config
 }
 
-func (config *NativeMessagingConfig) ConvertToCustomConfig() {
-	config.Executable = util.GetClientExecutablePath()
+func (config *NativeMessagingConfig) ConvertToCustomConfig(browser util.Browser) {
+	config.Executable = browser.GetClientPath()
 }

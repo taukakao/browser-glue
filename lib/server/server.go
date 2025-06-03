@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	"github.com/taukakao/browser-glue/lib/config"
-	"github.com/taukakao/browser-glue/lib/flatpak"
 	"github.com/taukakao/browser-glue/lib/logs"
 	"github.com/taukakao/browser-glue/lib/util"
 )
@@ -52,9 +51,10 @@ func (serv *Server) run() error {
 
 	browser := serv.ConfigFile.GetBrowser()
 
-	checkAndFixPermissionsQueue <- browser
+	socketDir := browser.GetFlatpakRuntimeAppFolder()
+	socketFileName := util.GenerateSocketFileName(serv.ExtensionName)
 
-	socketPath := util.GenerateSocketPath(browser.GetFlatpakId(), serv.ExtensionName)
+	socketPath := filepath.Join(socketDir, socketFileName)
 
 	os.MkdirAll(filepath.Dir(socketPath), 0o775)
 	listener, err := net.Listen("unix", socketPath)
@@ -114,32 +114,4 @@ func (serv *Server) run() error {
 			}
 		}
 	}
-}
-
-var checkAndFixPermissionsQueue chan util.Browser = make(chan util.Browser, 10)
-
-func permissionRoutine() {
-	for browser := range checkAndFixPermissionsQueue {
-		hasPermissions, err := flatpak.CheckBrowserPermissions(browser)
-		if err != nil {
-			err = fmt.Errorf("could not check browser permissions of %s: %w", browser, err)
-			logs.Error(err)
-			continue
-		}
-
-		if hasPermissions {
-			continue
-		}
-
-		err = flatpak.FixBrowserPermissions(browser)
-		if err != nil {
-			err = fmt.Errorf("could not give browser %s the needed flatpak permissions %w", browser, err)
-			logs.Error(err)
-			continue
-		}
-	}
-}
-
-func init() {
-	go permissionRoutine()
 }
