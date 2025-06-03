@@ -32,14 +32,6 @@ func startServer() int {
 	allServersExited := make(chan struct{})
 	server.RunEnabledServersBackground(browser, *listenIn, allServersExited)
 
-	// if errors.Is(err, server.ErrNoConfigFiles) {
-	// 	pterm.Error.Println("You have not enabled any configs yet.")
-	// 	return 1
-	// } else if err != nil {
-	// 	pterm.Error.Println("Could not start enabled servers:", err)
-	// 	return 2
-	// }
-
 	pterm.Info.Println("Servers started")
 
 	interrupt := make(chan os.Signal, 1)
