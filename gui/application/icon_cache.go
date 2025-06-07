@@ -19,6 +19,13 @@ import (
 )
 
 func cacheBrowserIcons() {
+	defer func() {
+		panicReason := recover()
+		if panicReason != nil {
+			logs.Error("panic while caching browser icons:", panicReason)
+		}
+	}()
+
 	var iconCacheDir = filepath.Join(util.GetCustomUserCacheDir(), "browsericons")
 	err := os.MkdirAll(iconCacheDir, 0o775)
 	if err != nil {
