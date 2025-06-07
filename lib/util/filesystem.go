@@ -30,6 +30,10 @@ func GetCustomUserConfigDir() string {
 	return customUserConfigDir
 }
 
+func GetCustomUserCacheDir() string {
+	return customUserCacheDir
+}
+
 func MakePathHomeRelative(path string) string {
 	pathRel, err := filepath.Rel(homeDir, path)
 	if err != nil {
@@ -56,7 +60,6 @@ func findHomeDirPath() string {
 func findUserDataDirPath() string {
 	dataDir, ok := os.LookupEnv("XDG_DATA_HOME")
 	if !ok {
-		homeDir := homeDir
 		dataDir = filepath.Join(homeDir, ".local", "share")
 	}
 	return dataDir
@@ -65,10 +68,17 @@ func findUserDataDirPath() string {
 func findUserConfigDir() string {
 	configDir, ok := os.LookupEnv("XDG_CONFIG_HOME")
 	if !ok {
-		homeDir := homeDir
 		configDir = filepath.Join(homeDir, ".config")
 	}
 	return configDir
+}
+
+func findUserCacheDir() string {
+	cacheDir, ok := os.LookupEnv("XDG_CACHE_HOME")
+	if !ok {
+		cacheDir = filepath.Join(homeDir, ".cache")
+	}
+	return cacheDir
 }
 
 func findRuntimeDir() string {
@@ -88,10 +98,17 @@ func GetLongAppId() string {
 	return longAppId
 }
 
-var shortAppId = "browser-glue"
-var longAppId = "de.taukakao.BrowserGlue"
-var homeDir string = findHomeDirPath()
-var runtimeDir string = findRuntimeDir()
-var customUserDataDir string = filepath.Join(findUserDataDirPath(), shortAppId)
-var customUserConfigDir string = filepath.Join(findUserConfigDir(), shortAppId)
+var (
+	shortAppId = "browser-glue"
+	longAppId  = "de.taukakao.BrowserGlue"
+)
+
+var (
+	homeDir             string = findHomeDirPath()
+	runtimeDir          string = findRuntimeDir()
+	customUserDataDir   string = filepath.Join(findUserDataDirPath(), shortAppId)
+	customUserConfigDir string = filepath.Join(findUserConfigDir(), shortAppId)
+	customUserCacheDir  string = filepath.Join(findUserCacheDir(), shortAppId)
+)
+
 var socketEncoding = base64.NewEncoding("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-")

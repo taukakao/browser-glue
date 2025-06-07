@@ -37,12 +37,18 @@ func RunApplication() {
 		panic("interrupted while cleaning up")
 	}()
 
+	go cacheBrowserIcons()
+
 	if code := app.Run(os.Args); code > 0 {
 		os.Exit(code)
 	}
 }
 
+var activated = make(chan struct{}, 1)
+
 func activate(app *adw.Application) {
+	activated <- struct{}{}
+
 	builder := gtk.NewBuilderFromString(uiXML)
 
 	window := builder.GetObject("main_window").Cast().(*adw.ApplicationWindow)

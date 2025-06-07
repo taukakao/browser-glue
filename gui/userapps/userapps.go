@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/diamondburned/gotk4-adwaita/pkg/adw"
-	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 	"github.com/taukakao/browser-glue/lib/config"
 	"github.com/taukakao/browser-glue/lib/util"
@@ -24,11 +23,7 @@ func NewUserappsList(browser util.Browser, clickItemCallback func(config.NativeC
 	userappsPage := builder.GetObject("userapps_page").Cast().(*adw.StatusPage)
 	configList := builder.GetObject("config_list").Cast().(*adw.PreferencesGroup)
 
-	browserId := browser.GetFlatpakId()
-	iconTheme := gtk.IconThemeGetForDisplay(gdk.DisplayGetDefault())
-	if iconTheme.HasIcon(browserId) {
-		userappsPage.SetIconName(browserId)
-	}
+	userappsPage.SetIconName(browser.GetFlatpakId())
 
 	userappsPage.SetTitle(fmt.Sprintf("Native Applications for %s", browser.GetName()))
 
