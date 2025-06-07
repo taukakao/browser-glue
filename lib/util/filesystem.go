@@ -84,7 +84,12 @@ func findRuntimeDir() string {
 	return runtimeDir
 }
 
+func GetLongAppId() string {
+	return longAppId
+}
+
 var shortAppId = "browser-glue"
+var longAppId = "de.taukakao.BrowserGlue"
 var homeDir string = findHomeDirPath()
 var runtimeDir string = findRuntimeDir()
 var customUserDataDir string = filepath.Join(findUserDataDirPath(), shortAppId)
