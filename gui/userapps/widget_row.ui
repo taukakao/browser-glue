@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <object class="AdwActionRow" id="row">
+    <property name="activatable">true</property>
+    <child type="suffix">
+      <object class="GtkImage">
+        <property name="icon-name">go-next-symbolic</property>
+        <style>
+          <class name="dim-label"/>
+        </style>
+      </object>
+    </child>
+  </object>
+</interface>

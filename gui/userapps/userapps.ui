@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <object class="AdwClamp" id="userapps">
+    <property name="maximum-size">600</property>
+    <property name="child">
+      <object class="AdwStatusPage" id="userapps_page">
+        <child>
+          <object class="AdwPreferencesGroup" id="config_list"/>
+        </child>
+      </object>
+    </property>
+  </object>
+</interface>
