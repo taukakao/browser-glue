@@ -4,55 +4,12 @@ package util
 // this gets included in the client so it needs to be as small as possible
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
 )
-
-var ErrBrowserNotKnown = errors.New("this browser is not known")
-
-type Browser string
-
-const (
-	NoneBrowser Browser = ""
-	AllBrowsers Browser = "all"
-	Firefox     Browser = "firefox"
-	Floorp      Browser = "floorp"
-	Chromium    Browser = "chromium"
-	Brave       Browser = "brave"
-)
-
-var allBrowsers = []Browser{Firefox, Floorp, Chromium, Brave}
-
-func (browser *Browser) GetFlatpakId() string {
-	switch *browser {
-	case Firefox:
-		return "org.mozilla.firefox"
-	case Floorp:
-		return "one.ablaze.floorp"
-	case Chromium:
-		return "org.chromium.Chromium"
-	case Brave:
-		return "com.brave.Browser"
-	default:
-		panic(ErrBrowserNotKnown)
-	}
-}
-
-func (browser *Browser) GetFlatpakRuntimeAppFolder() string {
-	return filepath.Join(runtimeDir, "app", browser.GetFlatpakId(), shortAppId)
-}
-
-func (browser *Browser) GetClientPath() string {
-	return filepath.Join(browser.GetFlatpakRuntimeAppFolder(), "client")
-}
-
-func GetAllBrowsers() []Browser {
-	return allBrowsers
-}
 
 func GenerateSocketFileName(extensionName string) string {
 	extensionName = strings.TrimPrefix(extensionName, "chrome-extension://")
