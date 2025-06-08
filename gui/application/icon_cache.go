@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
@@ -115,7 +116,27 @@ func checkIfIconExists(directory string, iconName string) (bool, error) {
 		return false, err
 	}
 
+	remainingEntries := []os.DirEntry{}
+
+	oneMonthAgo := time.Now().AddDate(0, -1, 0)
 	for _, entry := range entries {
+		fileInfo, err := entry.Info()
+		if err != nil {
+			remainingEntries = append(remainingEntries, entry)
+			continue
+		}
+
+		if !fileInfo.ModTime().Before(oneMonthAgo) {
+			remainingEntries = append(remainingEntries, entry)
+			continue
+		}
+
+		logs.Info("cleaning up old cache file:", entry.Name())
+		os.Remove(filepath.Join(directory, entry.Name()))
+		return false, nil
+	}
+
+	for _, entry := range remainingEntries {
 		if iconName+filepath.Ext(entry.Name()) == entry.Name() {
 			return true, nil
 		}
