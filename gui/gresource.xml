@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/net/taukakao/BrowserGlue">
+    <file>generated/application/main.ui</file>
+    <file>generated/userapps/userapps.ui</file>
+    <file>generated/userapps/widget_row.ui</file>
+    <file>generated/userapp_settings/userapp_settings.ui</file>
+  </gresource>
+</gresources>

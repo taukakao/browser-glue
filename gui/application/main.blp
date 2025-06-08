@@ -1,0 +1,46 @@
+using Gtk 4.0;
+using Adw 1;
+
+Adw.ApplicationWindow main_window {
+  default-width: 800;
+  default-height: 600;
+  title: _("BrowserGlue");
+
+  Adw.NavigationView navigation_view {
+    Adw.NavigationPage {
+      title: _("Native Apps List");
+      tag: "native_apps";
+
+      child: Adw.ToolbarView userapps_view {
+        [top]
+        Adw.HeaderBar {
+          show-title: false;
+
+          [start]
+          MenuButton {
+            menu-model: browser_select_menu;
+
+            Adw.ButtonContent browser_button {
+              label: _("Browser");
+              icon-name: "web-browser-symbolic";
+            }
+          }
+        }
+      };
+    }
+
+    Adw.NavigationPage userapp_settings {
+      title: _("Native App Settings");
+      tag: "native_app_settings";
+
+      child: Adw.ToolbarView userapp_settings_toolbar {
+        [top]
+        Adw.HeaderBar {
+          show-title: false;
+        }
+      };
+    }
+  }
+}
+
+menu browser_select_menu {}

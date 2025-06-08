@@ -5,8 +5,6 @@ import (
 	"os"
 	"os/signal"
 
-	_ "embed"
-
 	"github.com/diamondburned/gotk4-adwaita/pkg/adw"
 	"github.com/diamondburned/gotk4/pkg/gio/v2"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
@@ -17,10 +15,7 @@ import (
 	"github.com/taukakao/browser-glue/lib/util"
 )
 
-//go:embed main.ui
-var uiXML string
-
-func RunApplication() {
+func RunApplication(gresourceData []byte) {
 	app := adw.NewApplication(util.GetLongAppId(), gio.ApplicationFlagsNone)
 	app.ConnectActivate(func() { activate(app) })
 
@@ -39,6 +34,12 @@ func RunApplication() {
 
 	go cacheBrowserIcons()
 
+	gresource, err := gio.NewResourceFromData(glib.NewBytes(gresourceData))
+	if err != nil {
+		panic(fmt.Errorf("Could not load gresources: %w", err))
+	}
+	gio.ResourcesRegister(gresource)
+
 	if code := app.Run(os.Args); code > 0 {
 		os.Exit(code)
 	}
@@ -49,7 +50,7 @@ var activated = make(chan struct{}, 1)
 func activate(app *adw.Application) {
 	activated <- struct{}{}
 
-	builder := gtk.NewBuilderFromString(uiXML)
+	builder := gtk.NewBuilderFromResource("/net/taukakao/BrowserGlue/generated/application/main.ui")
 
 	window := builder.GetObject("main_window").Cast().(*adw.ApplicationWindow)
 	browserMenu := builder.GetObject("browser_select_menu").Cast().(*gio.Menu)

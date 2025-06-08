@@ -1,0 +1,15 @@
+using Gtk 4.0;
+using Adw 1;
+
+Adw.ActionRow row {
+  activatable: true;
+
+  [suffix]
+  Image {
+    icon-name: "go-next-symbolic";
+
+    styles [
+      "dim-label",
+    ]
+  }
+}

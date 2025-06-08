@@ -1,21 +1,18 @@
 package userapp_settings
 
 import (
-	_ "embed"
 	"strings"
 
 	"github.com/diamondburned/gotk4-adwaita/pkg/adw"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
+	"github.com/taukakao/browser-glue/gui/resources"
 	"github.com/taukakao/browser-glue/lib/config"
 )
-
-//go:embed userapp_settings.ui
-var uiXML string
 
 func NewUserappSettings(configFile config.NativeConfigFile) gtk.Widgetter {
 	browser := configFile.GetBrowser()
 
-	builder := gtk.NewBuilderFromString(uiXML)
+	builder := resources.GetBuilderForPath("userapp_settings/userapp_settings.ui")
 
 	page := builder.GetObject("userapp_settings").Cast().(*adw.StatusPage)
 	enableSwitch := builder.GetObject("enable_switch").Cast().(*adw.SwitchRow)

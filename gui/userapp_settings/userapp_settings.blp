@@ -1,0 +1,50 @@
+using Gtk 4.0;
+using Adw 1;
+
+Adw.StatusPage userapp_settings {
+  Adw.Clamp {
+    maximum-size: 600;
+
+    child: Adw.PreferencesGroup {
+      Adw.SwitchRow enable_switch {
+        title: _("Enabled");
+      }
+
+      Adw.ActionRow exec_info {
+        styles [
+          "property",
+        ]
+
+        title: _("Executable");
+        subtitle-selectable: true;
+      }
+
+      Adw.ActionRow config_path_info {
+        styles [
+          "property",
+        ]
+
+        title: _("Configuration file path");
+        subtitle-selectable: true;
+      }
+
+      Adw.ActionRow extensions_info {
+        styles [
+          "property",
+        ]
+
+        title: _("Extensions");
+        subtitle-selectable: true;
+      }
+
+      Adw.ActionRow browser_info {
+        styles [
+          "property",
+        ]
+
+        title: _("Browser");
+        subtitle-selectable: true;
+      }
+    };
+  }
+}

@@ -100,7 +100,7 @@ func GetLongAppId() string {
 
 var (
 	shortAppId = "browser-glue"
-	longAppId  = "de.taukakao.BrowserGlue"
+	longAppId  = "net.taukakao.BrowserGlue"
 )
 
 var (
