@@ -15,7 +15,7 @@ import (
 	"github.com/taukakao/browser-glue/lib/util"
 )
 
-func RunApplication(gresourceData []byte) {
+func RunApplication() {
 	app := adw.NewApplication(util.GetLongAppId(), gio.ApplicationFlagsNone)
 	app.ConnectActivate(func() { activate(app) })
 
@@ -33,12 +33,6 @@ func RunApplication(gresourceData []byte) {
 	}()
 
 	go cacheBrowserIcons()
-
-	gresource, err := gio.NewResourceFromData(glib.NewBytes(gresourceData))
-	if err != nil {
-		panic(fmt.Errorf("Could not load gresources: %w", err))
-	}
-	gio.ResourcesRegister(gresource)
 
 	if code := app.Run(os.Args); code > 0 {
 		os.Exit(code)

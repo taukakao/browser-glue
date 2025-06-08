@@ -4,6 +4,7 @@ import (
 	_ "embed"
 
 	"github.com/taukakao/browser-glue/gui/application"
+	"github.com/taukakao/browser-glue/gui/resources"
 )
 
 //go:generate ./compile_resources.sh
@@ -12,5 +13,7 @@ import (
 var gresourceData []byte
 
 func main() {
-	application.RunApplication(gresourceData)
+	resources.RegisterResourceFromData(gresourceData)
+
+	application.RunApplication()
 }
