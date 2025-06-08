@@ -47,15 +47,15 @@ func (config *NativeConfigFile) IsEnabled() bool {
 }
 
 func (config *NativeConfigFile) Enable() error {
-	err := settings.SetNativeConfigFileEnabled(config.browser, config.Name(), true)
+	err := config.writeConfigToFlatpakDir()
 	if err != nil {
-		err = fmt.Errorf("could not change setting of config file: %w", err)
+		err = fmt.Errorf("could not write config to flatpak directory: %w", err)
 		logs.Error(err)
 		return err
 	}
-	err = config.writeConfigToFlatpakDir()
+	err = settings.SetNativeConfigFileEnabled(config.browser, config.Name(), true)
 	if err != nil {
-		err = fmt.Errorf("could not write config to flatpak directory: %w", err)
+		err = fmt.Errorf("could not change setting of config file: %w", err)
 		logs.Error(err)
 		return err
 	}
@@ -63,16 +63,17 @@ func (config *NativeConfigFile) Enable() error {
 }
 
 func (config *NativeConfigFile) Disable() error {
-	err := settings.SetNativeConfigFileEnabled(config.browser, config.Name(), false)
+	err := config.deleteConfigInFlatpakDir()
+	if err != nil {
+		logs.Warn("config not deleted from flatpak dir", err)
+	}
+	err = settings.SetNativeConfigFileEnabled(config.browser, config.Name(), false)
 	if err != nil {
 		err = fmt.Errorf("could not change setting of config file: %w", err)
 		logs.Error(err)
 		return err
 	}
-	err = config.deleteConfigInFlatpakDir()
-	if err != nil {
-		logs.Warn("config not deleted from flatpak dir", err)
-	}
+
 	return nil
 }
 
