@@ -7,7 +7,7 @@ require (
 	github.com/diamondburned/gotk4-adwaita/pkg v0.0.0-20250223021911-503726bcfce6
 	github.com/diamondburned/gotk4/pkg v0.3.1
 	github.com/fsnotify/fsnotify v1.9.0
-	github.com/pterm/pterm v0.12.81
+	github.com/pterm/pterm v0.12.82
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 )
